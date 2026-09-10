@@ -1,6 +1,12 @@
 # UTT Tehuacán — control de asistencia para congresos
 
-MVP local para registrar asistencias mediante QR y, posteriormente, NFC. El panel utiliza Next.js/React y PostgreSQL se ejecuta en Docker. Esta etapa no consume recursos de Firebase.
+Sistema de control de asistencia para el congreso de la Universidad Tecnológica de Tehuacán. El proyecto comienza con un único congreso activo, pero su modelo de datos admite múltiples eventos y sesiones.
+
+La aplicación se desarrolla primero de manera local con React, Next.js y PostgreSQL en Docker. Esta etapa no consume recursos de Firebase.
+
+## Estado del proyecto
+
+En desarrollo activo. Actualmente incluye administración de alumnos, credenciales QR, registro de asistencias, control de duplicados y permisos por rol. La lectura NFC móvil y el despliegue en producción están en la hoja de ruta.
 
 ## Incluido
 
@@ -15,12 +21,20 @@ MVP local para registrar asistencias mediante QR y, posteriormente, NFC. El pane
 - Seis alumnos, tres sesiones y cuatro usuarios simulados.
 - Alta individual con generación automática de credencial.
 - Vista previa imprimible, reemisión y escritura Web NFC.
-- Exportación CSV compatible con Excel y Google Sheets.
+- Edición completa de alumnos sin fotografía, búsqueda y filtros.
+- Importación y exportación CSV compatible con Excel y Google Sheets.
+
+## Importar alumnos
+
+Desde **Alumnos → Importar CSV** se puede cargar un máximo de 5,000 filas o 2 MB por archivo. Las columnas requeridas son `Matrícula`, `Nombre` y `Programa`; `Correo` es opcional. También se aceptan sus equivalentes en inglés: `enrollment`, `name`, `program` y `email`.
+
+Si una matrícula ya existe, sus datos se actualizan y el alumno se reactiva. Si no existe, se crea y queda listo para generar su credencial. La plantilla está disponible en `public/plantilla-alumnos.csv` y desde la propia pantalla de importación.
 
 ## Requisitos
 
 - Node.js 20 o posterior.
 - Docker Desktop.
+- Git.
 
 ## Arranque
 
@@ -33,6 +47,27 @@ npm run dev
 Abrir http://localhost:3000.
 
 PostgreSQL queda disponible en el puerto local 5433. La aplicación toma la configuración de .env.local.
+
+## Configuración
+
+Copiar el archivo de ejemplo si no existe una configuración local:
+
+~~~powershell
+Copy-Item .env.example .env.local
+~~~
+
+Las variables locales nunca deben subirse al repositorio. Para producción se deben reemplazar la contraseña de PostgreSQL y la clave JWT.
+
+## Comandos
+
+| Comando | Función |
+|---|---|
+| npm run dev | Inicia el servidor de desarrollo |
+| npm run build | Genera y valida la compilación de producción |
+| npm run check | Comprueba los tipos de TypeScript |
+| npm run db:up | Levanta PostgreSQL |
+| npm run db:down | Detiene PostgreSQL |
+| npm run db:logs | Muestra los registros de PostgreSQL |
 
 ## Usuarios de demostración
 
@@ -75,20 +110,52 @@ Next.js (interfaz + API)
 PostgreSQL 16 en Docker
 ~~~
 
+## Estructura
+
+~~~text
+database/init/        Esquema y datos simulados
+public/               Logotipo y recursos públicos
+src/app/              Páginas y API de Next.js
+src/components/       Componentes de la interfaz
+src/lib/              Autenticación, PostgreSQL y utilidades
+~~~
+
+## Criterios de seguridad
+
+- Los chips y códigos QR contienen un token aleatorio, nunca datos personales.
+- Los tokens se almacenan como hash SHA-256.
+- Una restricción única impide duplicar una asistencia por alumno y sesión.
+- Cada intento de lectura queda registrado para auditoría.
+- Los permisos se validan en el servidor, no solamente en la interfaz.
+
 La hoja de cálculo y Firebase quedan fuera de esta etapa. Cuando el flujo local esté aprobado, se puede agregar sincronización por lotes con Google Sheets y decidir entre:
 
 1. Conservar PostgreSQL en producción.
 2. Migrar la persistencia a Firestore.
 3. Usar Firebase solamente para autenticación/notificaciones y PostgreSQL para las asistencias.
 
-## Próximos módulos
+## Hoja de ruta
 
-- CRUD real de eventos, sesiones, usuarios y alumnos.
-- Importación de alumnos desde CSV/XLSX.
-- Generación e impresión de códigos QR.
+- Administración de eventos, sesiones y usuarios.
 - Aplicación React Native para NFC en Android/iPhone.
 - Cola sin conexión y sincronización.
 - Integración por lotes con Google Sheets.
 - Pruebas de carga, respaldos y despliegue.
+
+## Trabajo con Git
+
+Crear una rama para cada bloque de trabajo:
+
+~~~powershell
+git switch -c feature/nombre-del-modulo
+git add .
+git commit -m "feat: descripción breve del cambio"
+~~~
+
+No deben versionarse .env.local, node_modules, .next ni respaldos de la base de datos.
+
+## Licencia y uso
+
+Proyecto interno de la Universidad Tecnológica de Tehuacán. El logotipo institucional conserva los derechos y lineamientos de la universidad.
 
 Las contraseñas y la clave JWT incluidas son exclusivamente para desarrollo local.
