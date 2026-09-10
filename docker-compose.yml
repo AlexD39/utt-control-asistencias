@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: congreso_nfc_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: congreso_nfc
+      POSTGRES_USER: congreso
+      POSTGRES_PASSWORD: congreso_local
+      TZ: America/Mexico_City
+    ports:
+      - "5433:5432"
+    volumes:
+      - congreso_postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U congreso -d congreso_nfc"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  congreso_postgres_data:
+
