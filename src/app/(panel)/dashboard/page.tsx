@@ -10,15 +10,16 @@ type Recent = { name: string; enrollment: string; session_name: string; scanned_
 export default async function DashboardPage() {
   const user = await requireUser();
   const [metricsResult, eventResult, recentResult] = await Promise.all([
-    query<Metrics>(`SELECT
-      (SELECT COUNT(*) FROM event_students)::text students,
-      (SELECT COUNT(*) FROM attendances)::text attendances,
-      (SELECT COUNT(*) FROM sessions WHERE active)::text sessions,
+    query<Metrics>(`WITH current_event AS (SELECT id FROM events WHERE status = 'active' ORDER BY starts_at DESC LIMIT 1)
+      SELECT
+      (SELECT COUNT(*) FROM event_students WHERE event_id = (SELECT id FROM current_event))::text students,
+      (SELECT COUNT(*) FROM attendances WHERE event_id = (SELECT id FROM current_event))::text attendances,
+      (SELECT COUNT(*) FROM sessions WHERE active AND event_id = (SELECT id FROM current_event))::text sessions,
       (SELECT COUNT(*) FROM users WHERE active AND role = 'scanner')::text scanners`),
-    query<EventRow>("SELECT * FROM events ORDER BY starts_at DESC LIMIT 1"),
+    query<EventRow>("SELECT * FROM events ORDER BY CASE status WHEN 'active' THEN 0 WHEN 'draft' THEN 1 ELSE 2 END, starts_at DESC LIMIT 1"),
     query<Recent>(`SELECT st.name, st.enrollment, se.name session_name, a.scanned_at, a.source
       FROM attendances a JOIN students st ON st.id = a.student_id JOIN sessions se ON se.id = a.session_id
-      ORDER BY a.scanned_at DESC LIMIT 6`)
+      JOIN events e ON e.id = a.event_id WHERE e.status = 'active' ORDER BY a.scanned_at DESC LIMIT 6`)
   ]);
   const metrics = metricsResult.rows[0];
   const event = eventResult.rows[0];
@@ -26,7 +27,7 @@ export default async function DashboardPage() {
 
   return <>
     <div className="page-heading"><div><p className="eyebrow">PANORAMA GENERAL</p><h1>Buenos días, {user.name.split(" ")[0]}</h1><p>Esto es lo que está pasando en el congreso.</p></div>{canScan && <Link href="/scanner" className="button button-primary">⌗ Registrar asistencia</Link>}</div>
-    {event && <section className="event-banner"><div><span className="pill pill-live">● EN CURSO</span><h2>{event.name}</h2><p>{event.venue} · {formatDate(event.starts_at, false)} – {formatDate(event.ends_at, false)}</p></div><div className="event-number"><strong>{metrics.attendances}</strong><span>registros totales</span></div></section>}
+    {event && <section className="event-banner"><div><span className={event.status === "active" ? "pill pill-live" : "pill"}>{event.status === "active" ? "● EN CURSO" : event.status === "draft" ? "BORRADOR" : "CERRADO"}</span><h2>{event.name}</h2><p>{event.venue} · {formatDate(event.starts_at, false)} – {formatDate(event.ends_at, false)}</p></div><div className="event-number"><strong>{metrics.attendances}</strong><span>registros del congreso activo</span></div></section>}
     <section className="metric-grid">
       <article className="metric-card"><span className="metric-icon mint">◎</span><p>Alumnos inscritos</p><strong>{metrics.students}</strong><small>Padrón del evento</small></article>
       <article className="metric-card"><span className="metric-icon coral">✓</span><p>Asistencias</p><strong>{metrics.attendances}</strong><small>Registros confirmados</small></article>
@@ -38,4 +39,3 @@ export default async function DashboardPage() {
     </section>
   </>;
 }
-

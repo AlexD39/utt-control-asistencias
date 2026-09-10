@@ -43,6 +43,7 @@ p { color: var(--muted); }
 .button:disabled { opacity: .5; cursor: not-allowed; }
 .button-primary { background: var(--forest); color: white; box-shadow: 0 8px 20px rgba(22, 60, 46, .16); }
 .button-secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+.button-danger { margin-right: auto; background: var(--danger-soft); color: var(--danger); border: 1px solid #f1c9c2; }
 .button-ghost { background: rgba(255,255,255,.9); color: var(--ink); }
 .pill { display: inline-flex; align-items: center; width: fit-content; border-radius: 100px; padding: .35rem .6rem; background: #eef1ef; color: var(--muted); font-size: .65rem; font-weight: 850; letter-spacing: .08em; }
 .pill-live { background: var(--mint); color: var(--forest); }
@@ -227,6 +228,35 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
 .import-metrics strong { color: var(--forest); font-size: 1.35rem; }
 .import-metrics span { color: var(--muted); font-size: .7rem; }
 
+.event-list { display: grid; gap: 1rem; }
+.event-list-card { display: flex; justify-content: space-between; align-items: center; gap: 2rem; transition: transform .18s ease, border-color .18s ease; }
+.event-list-card:hover { transform: translateY(-2px); border-color: #a7cbc0; }
+.event-list-card h2 { margin: .8rem 0 .25rem; }
+.event-list-card p { margin-bottom: .45rem; }
+.event-list-card small { color: var(--muted); }
+.event-card-metrics { display: flex; align-items: center; gap: 1.5rem; text-align: center; }
+.event-card-metrics span, .event-card-metrics strong { display: block; }
+.event-card-metrics span { color: var(--muted); font-size: .7rem; }
+.event-card-metrics strong { margin-bottom: .2rem; color: var(--ink); font-size: 1.15rem; }
+.event-card-metrics b { color: var(--forest-2); white-space: nowrap; }
+.create-event-section { max-width: 980px; margin-top: 2.5rem; }
+.entity-form { max-width: 980px; }
+.breadcrumb { display: flex; gap: .6rem; align-items: center; margin-bottom: 1rem; color: var(--muted); font-size: .76rem; }
+.breadcrumb a { color: var(--forest-2); font-weight: 800; }
+.session-section { margin-top: 2.5rem; }
+.section-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1rem; }
+.section-heading h2 { margin-bottom: .35rem; }
+.section-heading p:last-child { margin-bottom: 0; }
+.session-form { margin-bottom: 1rem; }
+.session-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.session-card { display: flex; justify-content: space-between; gap: 1rem; }
+.session-card h3 { margin: .8rem 0 .25rem; }
+.session-card p { margin-bottom: .4rem; }
+.session-card small { color: var(--muted); }
+.session-actions { display: flex; flex-direction: column; align-items: stretch; gap: .5rem; min-width: 105px; }
+.session-actions .button { padding: .58rem .75rem; font-size: .72rem; }
+.session-actions .button-danger { margin-right: 0; }
+
 @media (max-width: 980px) {
   .login-shell { grid-template-columns: 1fr; }
   .login-copy { min-height: 42vh; padding: 2rem; }
@@ -250,6 +280,8 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
   .scan-result { min-height: 300px; }
   .import-complete { align-items: flex-start; flex-wrap: wrap; }
   .import-metrics { margin-left: 0; }
+  .event-list-card { align-items: flex-start; flex-direction: column; }
+  .event-card-metrics { width: 100%; justify-content: space-between; }
 }
 
 @media (max-width: 640px) {
@@ -267,6 +299,10 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
   .page-heading { display: block; }
   .page-heading .button { margin-top: 1rem; width: 100%; }
   .heading-actions, .form-grid, .student-filters { display: grid; grid-template-columns: 1fr; }
+  .section-heading, .event-card-metrics { align-items: stretch; flex-direction: column; }
+  .session-grid { grid-template-columns: 1fr; }
+  .session-card { flex-direction: column; }
+  .session-actions { flex-direction: row; flex-wrap: wrap; }
   .student-form, .credential-workspace { padding: 1rem; }
   .credential-print { width: 100%; max-width: 330px; }
   .credential-action { align-items: stretch; flex-direction: column; }

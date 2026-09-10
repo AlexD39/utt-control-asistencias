@@ -23,6 +23,8 @@ En desarrollo activo. Actualmente incluye administración de alumnos, credencial
 - Vista previa imprimible, reemisión y escritura Web NFC.
 - Edición completa de alumnos sin fotografía, búsqueda y filtros.
 - Importación y exportación CSV compatible con Excel y Google Sheets.
+- CRUD de congresos y sesiones con un único congreso activo a la vez.
+- Protección contra el borrado de congresos o sesiones con información asociada.
 
 ## Importar alumnos
 
@@ -136,7 +138,7 @@ La hoja de cálculo y Firebase quedan fuera de esta etapa. Cuando el flujo local
 
 ## Hoja de ruta
 
-- Administración de eventos, sesiones y usuarios.
+- Administración completa de usuarios y asignación de personal por congreso.
 - Aplicación React Native para NFC en Android/iPhone.
 - Cola sin conexión y sincronización.
 - Integración por lotes con Google Sheets.
