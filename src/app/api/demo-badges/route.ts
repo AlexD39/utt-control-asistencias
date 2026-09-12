@@ -10,6 +10,9 @@ export async function GET() {
   if (process.env.NODE_ENV === "production") return NextResponse.json({ codes: [] });
   const { rows } = await query<{ code: string }>(`SELECT candidate.code FROM unnest($1::text[]) candidate(code)
     JOIN badges b ON b.token_hash = encode(digest(candidate.code, 'sha256'), 'hex')
-    WHERE b.active = TRUE ORDER BY candidate.code`, [demoCodes]);
+    JOIN events e ON e.id = b.event_id
+    WHERE b.active = TRUE AND e.status = 'active' AND ($2::boolean OR EXISTS (
+      SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $3
+    )) ORDER BY candidate.code`, [demoCodes, user.role === "super_admin", user.id]);
   return NextResponse.json({ codes: rows.map((row) => row.code) });
 }

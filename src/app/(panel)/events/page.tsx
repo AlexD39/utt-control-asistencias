@@ -18,7 +18,8 @@ export default async function EventsPage() {
     (SELECT COUNT(*) FROM sessions s WHERE s.event_id = e.id)::text sessions,
     (SELECT COUNT(*) FROM event_students es WHERE es.event_id = e.id)::text students,
     (SELECT COUNT(*) FROM attendances a WHERE a.event_id = e.id)::text attendances
-    FROM events e ORDER BY CASE e.status WHEN 'active' THEN 0 WHEN 'draft' THEN 1 ELSE 2 END, e.starts_at DESC`);
+    FROM events e WHERE ($1::boolean OR EXISTS (SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $2))
+    ORDER BY CASE e.status WHEN 'active' THEN 0 WHEN 'draft' THEN 1 ELSE 2 END, e.starts_at DESC`, [user.role === "super_admin", user.id]);
 
   return <>
     <div className="page-heading"><div><p className="eyebrow">ADMINISTRACIÓN</p><h1>Congresos</h1><p>El sistema opera con un congreso activo, conservando el historial de los anteriores.</p></div></div>

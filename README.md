@@ -25,12 +25,15 @@ En desarrollo activo. Actualmente incluye administración de alumnos, credencial
 - Importación y exportación CSV compatible con Excel y Google Sheets.
 - CRUD de congresos y sesiones con un único congreso activo a la vez.
 - Protección contra el borrado de congresos o sesiones con información asociada.
+- Asignación de alumnos y personal por congreso.
+- Importación CSV dirigida al congreso seleccionado.
+- Acceso al escáner limitado al personal asignado.
 
 ## Importar alumnos
 
 Desde **Alumnos → Importar CSV** se puede cargar un máximo de 5,000 filas o 2 MB por archivo. Las columnas requeridas son `Matrícula`, `Nombre` y `Programa`; `Correo` es opcional. También se aceptan sus equivalentes en inglés: `enrollment`, `name`, `program` y `email`.
 
-Si una matrícula ya existe, sus datos se actualizan y el alumno se reactiva. Si no existe, se crea y queda listo para generar su credencial. La plantilla está disponible en `public/plantilla-alumnos.csv` y desde la propia pantalla de importación.
+Si una matrícula ya existe, sus datos se actualizan y el alumno se reactiva. Si no existe, se crea y queda listo para generar su credencial. Desde el detalle de un congreso, la importación asigna todas las filas directamente a ese evento. La plantilla está disponible en `public/plantilla-alumnos.csv` y desde la propia pantalla de importación.
 
 ## Requisitos
 
@@ -138,7 +141,7 @@ La hoja de cálculo y Firebase quedan fuera de esta etapa. Cuando el flujo local
 
 ## Hoja de ruta
 
-- Administración completa de usuarios y asignación de personal por congreso.
+- Administración completa de usuarios.
 - Aplicación React Native para NFC en Android/iPhone.
 - Cola sin conexión y sincronización.
 - Integración por lotes con Google Sheets.

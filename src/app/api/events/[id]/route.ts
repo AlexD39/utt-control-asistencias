@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { transaction } from "@/lib/db";
 import { eventSchema } from "@/lib/event-schemas";
+import { canManageEvent } from "@/lib/event-access";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -10,9 +11,10 @@ export async function PATCH(request: Request, context: Context) {
   if (!user || (user.role !== "super_admin" && user.role !== "event_admin")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
+  const { id } = await context.params;
+  if (!(await canManageEvent(user, id))) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   const parsed = eventSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
-  const { id } = await context.params;
 
   const updated = await transaction(async (client) => {
     if (parsed.data.status === "active") await client.query("SELECT pg_advisory_xact_lock(202609)");

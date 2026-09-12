@@ -256,6 +256,20 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
 .session-actions { display: flex; flex-direction: column; align-items: stretch; gap: .5rem; min-width: 105px; }
 .session-actions .button { padding: .58rem .75rem; font-size: .72rem; }
 .session-actions .button-danger { margin-right: 0; }
+.assignment-section { margin-top: 2.5rem; }
+.assignment-layout { display: grid; grid-template-columns: minmax(280px, .7fr) minmax(520px, 1.3fr); gap: 1rem; align-items: start; }
+.assignment-picker h3 { margin-top: 0; }
+.assignment-picker > input { margin-bottom: .8rem; }
+.selection-list { display: grid; gap: .45rem; max-height: 340px; overflow-y: auto; margin-bottom: 1rem; padding-right: .25rem; }
+.selection-item { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: .65rem; padding: .7rem; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.selection-item:hover { background: #f7faf8; }
+.selection-item input { width: auto; }
+.selection-item strong, .selection-item small { display: block; }
+.selection-item small, .list-note, .empty-note { color: var(--muted); font-size: .68rem; }
+.selection-item small { margin-top: .2rem; }
+.assignment-picker > .button { width: 100%; margin-top: .8rem; }
+.text-danger { border: 0; background: transparent; color: var(--danger); font-size: .72rem; font-weight: 800; cursor: pointer; }
+.text-danger:disabled { opacity: .5; cursor: not-allowed; }
 
 @media (max-width: 980px) {
   .login-shell { grid-template-columns: 1fr; }
@@ -282,6 +296,7 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
   .import-metrics { margin-left: 0; }
   .event-list-card { align-items: flex-start; flex-direction: column; }
   .event-card-metrics { width: 100%; justify-content: space-between; }
+  .assignment-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {

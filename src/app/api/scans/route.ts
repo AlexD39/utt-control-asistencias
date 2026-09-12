@@ -29,8 +29,11 @@ export async function POST(request: Request) {
 
   const result = await transaction(async (client) => {
     const sessionResult = await client.query<{ id: string; event_id: string; name: string }>(
-      "SELECT id, event_id, name FROM sessions WHERE id = $1 AND active = TRUE",
-      [parsed.data.sessionId]
+      `SELECT s.id, s.event_id, s.name FROM sessions s JOIN events e ON e.id = s.event_id
+       WHERE s.id = $1 AND s.active = TRUE AND e.status = 'active' AND ($2::boolean OR EXISTS (
+         SELECT 1 FROM event_staff ef WHERE ef.event_id = s.event_id AND ef.user_id = $3
+       ))`,
+      [parsed.data.sessionId, user.role === "super_admin", user.id]
     );
     const session = sessionResult.rows[0];
     if (!session) return { status: 404, body: { result: "invalid_session", message: "La sesión no está disponible" } };

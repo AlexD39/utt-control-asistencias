@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { query, transaction } from "@/lib/db";
 import { sessionSchema } from "@/lib/event-schemas";
+import { canManageEvent } from "@/lib/event-access";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -10,12 +11,13 @@ export async function PATCH(request: Request, context: Context) {
   if (!user || (user.role !== "super_admin" && user.role !== "event_admin")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
-  const parsed = sessionSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
   const { id } = await context.params;
   const current = await query<{ event_id: string; starts_at: Date; ends_at: Date }>(`SELECT s.event_id, e.starts_at, e.ends_at
     FROM sessions s JOIN events e ON e.id = s.event_id WHERE s.id = $1`, [id]);
   if (!current.rows[0]) return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 });
+  if (!(await canManageEvent(user, current.rows[0].event_id))) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  const parsed = sessionSchema.safeParse(await request.json());
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
   if (new Date(parsed.data.startsAt) < current.rows[0].starts_at || new Date(parsed.data.endsAt) > current.rows[0].ends_at) {
     return NextResponse.json({ error: "La sesión debe quedar dentro de las fechas del congreso" }, { status: 400 });
   }
@@ -31,6 +33,9 @@ export async function DELETE(_request: Request, context: Context) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
   const { id } = await context.params;
+  const current = await query<{ event_id: string }>("SELECT event_id FROM sessions WHERE id = $1", [id]);
+  if (!current.rows[0]) return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 });
+  if (!(await canManageEvent(user, current.rows[0].event_id))) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   const result = await transaction(async (client) => {
     const usage = await client.query<{ total: string }>(`SELECT (
       (SELECT COUNT(*) FROM attendances WHERE session_id = $1) +
