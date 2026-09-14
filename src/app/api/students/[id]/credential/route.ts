@@ -23,7 +23,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     if (!row || !row.event_id) return null;
     const sql = "INSERT INTO badges (event_id, student_id, token_hash, label, active) " +
       "VALUES ($1, $2, encode(digest($3, 'sha256'), 'hex'), $4, TRUE) " +
-      "ON CONFLICT (event_id, student_id) DO UPDATE SET token_hash = EXCLUDED.token_hash, label = EXCLUDED.label, active = TRUE, revoked_at = NULL, issued_at = NOW()";
+      "ON CONFLICT (event_id, student_id) DO UPDATE SET token_hash = EXCLUDED.token_hash, label = EXCLUDED.label, active = TRUE, revoked_at = NULL, issued_at = NOW(), nfc_configured_at = NULL, nfc_verified_at = NULL";
     await client.query(sql, [row.event_id, row.id, credential, `Credencial ${row.enrollment}`]);
     return row;
   });

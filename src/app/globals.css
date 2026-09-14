@@ -159,6 +159,16 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
 .credential-help { color: var(--muted); font-size: .58rem; }
 .credential-workspace > div:last-child { max-width: 520px; }
 .credential-workspace .button { margin: 0 .5rem .7rem 0; }
+.nfc-support { display: flex; align-items: center; gap: .75rem; margin-top: .5rem; padding: .85rem; border: 1px solid #efd3ce; border-radius: 11px; background: var(--danger-soft); }
+.nfc-support.supported { border-color: #bfe1d7; background: var(--mint-soft); }
+.nfc-support > span { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 auto; border-radius: 50%; background: var(--danger); color: white; font-weight: 900; }
+.nfc-support.supported > span { background: var(--forest-2); }
+.nfc-support strong, .nfc-support small { display: block; }
+.nfc-support small { margin-top: .2rem; color: var(--muted); font-size: .68rem; line-height: 1.4; }
+.nfc-message { padding: .8rem 1rem; border-radius: 10px; background: #eef1ef; font-size: .76rem; font-weight: 700; }
+.nfc-message.waiting { background: var(--warning-soft); color: var(--warning); }
+.nfc-message.success { background: var(--mint-soft); color: var(--forest-2); }
+.nfc-message.error { background: var(--danger-soft); color: var(--danger); }
 .security-note, .security-note p { font-size: .72rem; }
 .security-note { margin-top: .5rem; }
 .security-note p { line-height: 1.55; }
@@ -180,6 +190,9 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
 .scanner-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .75fr); gap: 1rem; }
 .scanner-card { box-shadow: var(--shadow); }
 .scanner-card > label { margin: 1.5rem 0 1rem; }
+.scan-methods { display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; padding: .8rem; border-radius: 12px; background: var(--mint-soft); }
+.scan-methods .button { flex: 0 0 auto; }
+.scan-methods span { color: var(--muted); font-size: .68rem; line-height: 1.4; }
 .camera-trigger { width: 100%; min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem; border: 1.5px dashed #9bb5a7; border-radius: 14px; background: #f5faf6; color: var(--forest); cursor: pointer; }
 .camera-trigger > span { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; margin-bottom: .4rem; background: var(--forest); color: var(--mint); font-size: 1.7rem; }
 .camera-trigger small { color: var(--muted); }
@@ -342,6 +355,7 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
   .metrics, .metric-grid { grid-template-columns: 1fr 1fr; }
   .role-grid { grid-template-columns: 1fr; }
   .manual-form { grid-template-columns: 1fr; }
+  .scan-methods { align-items: stretch; flex-direction: column; }
 }
 
 @media print {

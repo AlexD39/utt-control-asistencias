@@ -70,6 +70,8 @@ CREATE TABLE badges (
   active BOOLEAN NOT NULL DEFAULT TRUE,
   issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   revoked_at TIMESTAMPTZ,
+  nfc_configured_at TIMESTAMPTZ,
+  nfc_verified_at TIMESTAMPTZ,
   UNIQUE (event_id, student_id)
 );
 
@@ -104,4 +106,3 @@ CREATE INDEX idx_attendances_event_time ON attendances(event_id, scanned_at DESC
 CREATE INDEX idx_attendances_session ON attendances(session_id);
 CREATE INDEX idx_scan_attempts_time ON scan_attempts(created_at DESC);
 CREATE INDEX idx_students_name ON students(name);
-

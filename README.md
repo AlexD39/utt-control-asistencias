@@ -20,7 +20,7 @@ En desarrollo activo. Actualmente incluye administración de alumnos, credencial
 - Tokens de gafete almacenados como SHA-256, no como texto visible.
 - Seis alumnos, tres sesiones y cuatro usuarios simulados.
 - Alta individual con generación automática de credencial.
-- Vista previa imprimible, reemisión y escritura Web NFC.
+- Vista previa imprimible, reemisión, escritura y verificación Web NFC.
 - Edición completa de alumnos sin fotografía, búsqueda y filtros.
 - Importación y exportación CSV compatible con Excel y Google Sheets.
 - CRUD de congresos y sesiones con un único congreso activo a la vez.
@@ -30,6 +30,13 @@ En desarrollo activo. Actualmente incluye administración de alumnos, credencial
 - Acceso al escáner limitado al personal asignado.
 - CRUD de usuarios con roles, activación, eliminación segura y restablecimiento de contraseña.
 - Invalidación inmediata de sesiones pertenecientes a usuarios desactivados o eliminados.
+- Registro de asistencias por NFC, QR o captura manual.
+
+## Uso de NFC
+
+Web NFC funciona desde Chrome en Android, con NFC encendido y el sistema abierto mediante HTTPS. En la credencial recién generada se utiliza **Configurar chip NFC** para escribir el token y **Verificar chip** para confirmar que corresponde al alumno. En el módulo **Escanear** se selecciona una sesión y se activa **Iniciar lector NFC** para registrar varios gafetes consecutivamente.
+
+Los chips deben aceptar mensajes NDEF y permanecer desbloqueados durante las pruebas. El QR y la captura manual siguen disponibles como respaldo. Safari en iPhone no ofrece esta misma API web, por lo que una fase posterior puede requerir una aplicación nativa.
 
 ## Importar alumnos
 
@@ -54,6 +61,12 @@ npm run dev
 Abrir http://localhost:3000.
 
 PostgreSQL queda disponible en el puerto local 5433. La aplicación toma la configuración de .env.local.
+
+Si el proyecto ya utilizaba un volumen de PostgreSQL anterior al módulo NFC, aplicar la migración:
+
+~~~powershell
+Get-Content database/migrations/003_nfc_status.sql | docker exec -i congreso_nfc_db psql -U congreso -d congreso_nfc
+~~~
 
 ## Configuración
 
@@ -108,7 +121,7 @@ docker compose up -d postgres
 ## Arquitectura actual
 
 ~~~text
-Navegador / cámara QR
+Chrome Android / NFC o cámara QR
         |
         v
 Next.js (interfaz + API)
