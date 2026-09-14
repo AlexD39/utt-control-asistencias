@@ -28,6 +28,8 @@ En desarrollo activo. Actualmente incluye administración de alumnos, credencial
 - Asignación de alumnos y personal por congreso.
 - Importación CSV dirigida al congreso seleccionado.
 - Acceso al escáner limitado al personal asignado.
+- CRUD de usuarios con roles, activación, eliminación segura y restablecimiento de contraseña.
+- Invalidación inmediata de sesiones pertenecientes a usuarios desactivados o eliminados.
 
 ## Importar alumnos
 
@@ -132,6 +134,7 @@ src/lib/              Autenticación, PostgreSQL y utilidades
 - Una restricción única impide duplicar una asistencia por alumno y sesión.
 - Cada intento de lectura queda registrado para auditoría.
 - Los permisos se validan en el servidor, no solamente en la interfaz.
+- Siempre debe permanecer al menos un superadministrador activo.
 
 La hoja de cálculo y Firebase quedan fuera de esta etapa. Cuando el flujo local esté aprobado, se puede agregar sincronización por lotes con Google Sheets y decidir entre:
 
@@ -141,7 +144,6 @@ La hoja de cálculo y Firebase quedan fuera de esta etapa. Cuando el flujo local
 
 ## Hoja de ruta
 
-- Administración completa de usuarios.
 - Aplicación React Native para NFC en Android/iPhone.
 - Cola sin conexión y sincronización.
 - Integración por lotes con Google Sheets.

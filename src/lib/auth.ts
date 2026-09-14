@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { query } from "@/lib/db";
 
 export type Role = "super_admin" | "event_admin" | "scanner" | "viewer";
 
@@ -46,13 +47,9 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     const token = (await cookies()).get(COOKIE_NAME)?.value;
     if (!token) return null;
     const { payload } = await jwtVerify(token, secret);
-    if (!payload.sub || !payload.name || !payload.email || !payload.role) return null;
-    return {
-      id: payload.sub,
-      name: String(payload.name),
-      email: String(payload.email),
-      role: payload.role as Role
-    };
+    if (!payload.sub) return null;
+    const result = await query<SessionUser>("SELECT id, name, email, role FROM users WHERE id = $1 AND active = TRUE", [payload.sub]);
+    return result.rows[0] ?? null;
   } catch {
     return null;
   }
@@ -73,4 +70,3 @@ export function roleLabel(role: Role) {
     viewer: "Consulta"
   }[role];
 }
-
