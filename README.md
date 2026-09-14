@@ -6,7 +6,7 @@ La aplicación se desarrolla primero de manera local con React, Next.js y Postgr
 
 ## Estado del proyecto
 
-En desarrollo activo. Actualmente incluye administración de alumnos, credenciales QR, registro de asistencias, control de duplicados y permisos por rol. La lectura NFC móvil y el despliegue en producción están en la hoja de ruta.
+En desarrollo activo. Actualmente incluye administración de alumnos, credenciales QR/NFC, registro de asistencias, control de duplicados y permisos por rol. La validación con chips físicos y el despliegue en producción son los siguientes hitos.
 
 ## Incluido
 
@@ -37,6 +37,39 @@ En desarrollo activo. Actualmente incluye administración de alumnos, credencial
 Web NFC funciona desde Chrome en Android, con NFC encendido y el sistema abierto mediante HTTPS. En la credencial recién generada se utiliza **Configurar chip NFC** para escribir el token y **Verificar chip** para confirmar que corresponde al alumno. En el módulo **Escanear** se selecciona una sesión y se activa **Iniciar lector NFC** para registrar varios gafetes consecutivamente.
 
 Los chips deben aceptar mensajes NDEF y permanecer desbloqueados durante las pruebas. El QR y la captura manual siguen disponibles como respaldo. Safari en iPhone no ofrece esta misma API web, por lo que una fase posterior puede requerir una aplicación nativa.
+
+### Primer ensayo físico local
+
+La opción recomendada para probar sin publicar el sistema en Internet es conectar un teléfono Android por USB y utilizar la redirección de puertos de ADB. Se necesita:
+
+- Teléfono Android con NFC y Chrome actualizado.
+- Un chip regrabable compatible con NDEF; NTAG213, NTAG215 o NTAG216 son opciones habituales.
+- Cable USB de datos.
+- Depuración USB activada en las opciones de desarrollador del teléfono.
+- Android SDK Platform Tools (`adb`) instalado en la computadora.
+- Pantalla del teléfono desbloqueada, NFC encendido y Chrome visible durante la lectura.
+
+Con PostgreSQL y la aplicación iniciados, conectar y autorizar el teléfono, y ejecutar:
+
+~~~powershell
+adb devices
+adb reverse tcp:3000 tcp:3000
+~~~
+
+Después, abrir `http://localhost:3000` en **Chrome del teléfono**. Esta dirección llega a la aplicación de la computadora mediante USB y evita utilizar la IP local por HTTP, que Web NFC rechaza por no ser un contexto seguro.
+
+Secuencia del ensayo:
+
+1. Iniciar sesión como `admin@congreso.local`.
+2. Abrir **Alumnos**, seleccionar uno y generar o reemitir su credencial.
+3. Pulsar **Configurar chip NFC**, aceptar el permiso y acercar un solo chip.
+4. Pulsar **Verificar chip** y acercar el mismo chip.
+5. Ir a **Escanear**, seleccionar la sesión y pulsar **Iniciar lector NFC**.
+6. Acercar el chip una vez: debe registrar la asistencia.
+7. Acercarlo nuevamente: debe mostrarse como duplicado sin crear otra asistencia.
+8. Confirmar ambos intentos en la bitácora de asistencias.
+
+No bloquear permanentemente el chip durante el piloto. Si `adb devices` muestra `unauthorized`, desbloquear el teléfono y aceptar la huella RSA. Al terminar se puede retirar la redirección con `adb reverse --remove tcp:3000`.
 
 ## Importar alumnos
 
