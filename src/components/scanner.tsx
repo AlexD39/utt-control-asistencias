@@ -16,6 +16,8 @@ export function Scanner() {
   const [camera, setCamera] = useState(false);
   const [nfcListening, setNfcListening] = useState(false);
   const [nfcMessage, setNfcMessage] = useState("");
+  const [loadingSessions, setLoadingSessions] = useState(true);
+  const [sessionError, setSessionError] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const resultRef = useRef<HTMLElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -25,13 +27,26 @@ export function Scanner() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/sessions").then((response) => response.json()),
-      fetch("/api/demo-badges").then((response) => response.json())
+      fetch("/api/sessions").then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "No fue posible consultar las sesiones.");
+        return data;
+      }),
+      fetch("/api/demo-badges").then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "No fue posible consultar las credenciales.");
+        return data;
+      })
     ]).then(([sessionData, demoData]) => {
       setSessions(sessionData.sessions ?? []);
       setDemoCodes(demoData.codes ?? []);
       if (sessionData.sessions?.[0]) setSessionId(sessionData.sessions[0].id);
-    });
+      if (!sessionData.sessions?.length) {
+        setSessionError("Tu cuenta no tiene sesiones disponibles. Pide a Superadministración que te asigne al congreso activo.");
+      }
+    }).catch((error) => {
+      setSessionError(error instanceof Error ? error.message : "No fue posible preparar el punto de registro.");
+    }).finally(() => setLoadingSessions(false));
     return () => { stopCamera(); stopNfc(); };
   }, []);
 
@@ -129,6 +144,10 @@ export function Scanner() {
       setResult({ result: "error", message: "Selecciona una sesión antes de activar la cámara." });
       return;
     }
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      setResult({ result: "error", message: "La cámara requiere abrir el sistema mediante HTTPS o http://localhost:3000." });
+      return;
+    }
     const BarcodeDetectorClass = (window as unknown as { BarcodeDetector?: new (options: { formats: string[] }) => { detect: (video: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector;
     if (!BarcodeDetectorClass) {
       setResult({ result: "error", message: "Este navegador no incluye lector QR. Usa Chrome/Edge actualizado o captura el código manualmente." });
@@ -182,7 +201,8 @@ export function Scanner() {
   return <div className="scanner-layout">
     <section className="card scanner-card">
       <div className="card-head scanner-head"><div><h2>Punto de registro</h2><p>Elige la sesión y acerca la credencial a la cámara.</p></div><span className="pill pill-live">● LISTO</span></div>
-      <label>Sesión activa<select value={sessionId} onChange={(event) => setSessionId(event.target.value)} disabled={nfcListening}>{sessions.length === 0 && <option value="">No hay sesiones disponibles</option>}{sessions.map((session) => <option key={session.id} value={session.id}>{session.name} · {session.room}</option>)}</select></label>
+      <label>Sesión activa<select value={sessionId} onChange={(event) => setSessionId(event.target.value)} disabled={nfcListening || loadingSessions}>{sessions.length === 0 && <option value="">{loadingSessions ? "Consultando sesiones…" : "No hay sesiones disponibles"}</option>}{sessions.map((session) => <option key={session.id} value={session.id}>{session.name} · {session.room}</option>)}</select></label>
+      {sessionError && <div className="alert alert-error" role="alert">{sessionError}</div>}
       {camera ? <div className="camera-box"><video ref={videoRef} muted playsInline /><div className="camera-frame"><span>Coloca el QR dentro del recuadro</span></div><button onClick={stopCamera} className="button button-ghost">Cancelar cámara</button></div> : <button className="camera-trigger" onClick={startCamera} disabled={!sessionId || loading}><span>⌗</span><strong>Escanear código QR</strong><small>Abre la cámara posterior</small></button>}
       <div className="scan-methods"><button className={nfcListening ? "button button-primary" : "button button-secondary"} onClick={nfcListening ? stopNfc : startNfc} disabled={!sessionId}>{nfcListening ? "Detener lector NFC" : "Usar chip NFC"}</button><span>{nfcMessage || "Opción disponible en teléfonos Android compatibles con NFC."}</span></div>
       <div className="divider"><span>o captura un código de prueba</span></div>
