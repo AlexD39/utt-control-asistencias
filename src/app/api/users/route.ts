@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSessionUser } from "@/lib/auth";
-import { query } from "@/lib/db";
+import { transaction } from "@/lib/db";
 import { createUserSchema } from "@/lib/user-schemas";
 
 export async function POST(request: Request) {
@@ -11,9 +11,16 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
   try {
     const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-    const created = await query<{ id: string }>(`INSERT INTO users (name, email, password_hash, role, active)
-      VALUES ($1, $2, $3, $4, $5) RETURNING id`, [parsed.data.name, parsed.data.email, passwordHash, parsed.data.role, parsed.data.active]);
-    return NextResponse.json(created.rows[0], { status: 201 });
+    const created = await transaction(async (client) => {
+      const result = await client.query<{ id: string }>(`INSERT INTO users (name, email, password_hash, role, active)
+        VALUES ($1, $2, $3, $4, $5) RETURNING id`, [parsed.data.name, parsed.data.email, passwordHash, parsed.data.role, parsed.data.active]);
+      if (parsed.data.role !== "super_admin") {
+        await client.query(`INSERT INTO event_staff (event_id, user_id)
+          SELECT id, $1 FROM events ON CONFLICT DO NOTHING`, [result.rows[0].id]);
+      }
+      return result.rows[0];
+    });
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
     if ((error as { code?: string }).code === "23505") return NextResponse.json({ error: "El correo ya pertenece a otro usuario" }, { status: 409 });
     return NextResponse.json({ error: "No fue posible crear el usuario" }, { status: 500 });

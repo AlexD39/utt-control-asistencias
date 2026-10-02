@@ -20,7 +20,9 @@ export async function POST(request: Request) {
       "INSERT INTO events (name, venue, starts_at, ends_at, status) VALUES ($1, $2, $3, $4, $5) RETURNING id",
       [parsed.data.name, parsed.data.venue, parsed.data.startsAt, parsed.data.endsAt, parsed.data.status]
     );
-    await client.query("INSERT INTO event_staff (event_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", [event.rows[0].id, user.id]);
+    await client.query(`INSERT INTO event_staff (event_id, user_id)
+      SELECT $1, id FROM users WHERE active AND role <> 'super_admin'
+      ON CONFLICT DO NOTHING`, [event.rows[0].id]);
     return event.rows[0];
   });
   return NextResponse.json(result, { status: 201 });

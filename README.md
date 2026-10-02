@@ -34,6 +34,8 @@ En desarrollo activo. Actualmente incluye administración de alumnos, credencial
 
 ## Roles y permisos
 
+Al crear o editar un integrante, el rol aplica inmediatamente sus funciones y lo vincula de forma automática con los congresos existentes. Los congresos nuevos incorporan automáticamente a los usuarios activos.
+
 | Función | Superadministración | Administración de evento | Registro | Consulta |
 |---|:---:|:---:|:---:|:---:|
 | Panel general | Sí | Sí | Sí | Sí |
@@ -109,10 +111,11 @@ Abrir http://localhost:3000.
 
 PostgreSQL queda disponible en el puerto local 5433. La aplicación toma la configuración de .env.local.
 
-Si el proyecto ya utilizaba un volumen de PostgreSQL anterior al módulo NFC, aplicar la migración:
+Si el proyecto ya utilizaba un volumen de PostgreSQL anterior, aplicar las migraciones pendientes:
 
 ~~~powershell
 Get-Content database/migrations/003_nfc_status.sql | docker exec -i congreso_nfc_db psql -U congreso -d congreso_nfc
+Get-Content database/migrations/004_default_event_access.sql | docker exec -i congreso_nfc_db psql -U congreso -d congreso_nfc
 ~~~
 
 ## Configuración

@@ -23,6 +23,10 @@ export async function PATCH(request: Request, context: Context) {
         if (Number(admins.rows[0].total) === 0) return "LAST_ADMIN";
       }
       await client.query("UPDATE users SET name = $1, email = $2, role = $3, active = $4, updated_at = NOW() WHERE id = $5", [parsed.data.name, parsed.data.email, parsed.data.role, parsed.data.active, id]);
+      if (parsed.data.role !== "super_admin") {
+        await client.query(`INSERT INTO event_staff (event_id, user_id)
+          SELECT id, $1 FROM events ON CONFLICT DO NOTHING`, [id]);
+      }
       return "UPDATED";
     });
     if (result === "NOT_FOUND") return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
