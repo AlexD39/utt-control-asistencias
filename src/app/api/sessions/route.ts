@@ -4,7 +4,9 @@ import { query } from "@/lib/db";
 
 export async function GET() {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!user || !["super_admin", "event_admin", "scanner"].includes(user.role)) {
+    return NextResponse.json({ error: "No autorizado" }, { status: user ? 403 : 401 });
+  }
   const result = await query(`SELECT s.id, s.event_id, s.name, s.room, s.starts_at, s.ends_at
     FROM sessions s JOIN events e ON e.id = s.event_id
     WHERE s.active AND e.status = 'active' AND ($1::boolean OR EXISTS (

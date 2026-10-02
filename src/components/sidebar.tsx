@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Role } from "@/lib/auth";
 import { InstitutionBrand } from "@/components/institution-brand";
+import { LogoutButton } from "@/components/logout-button";
 
 const items = [
   { href: "/dashboard", label: "Resumen", icon: "⌂", roles: ["super_admin", "event_admin", "scanner", "viewer"] },
@@ -27,7 +28,7 @@ export function Sidebar({ role }: { role: Role }) {
           </Link>
         ))}
       </nav>
-      <form action="/api/auth/logout" method="post"><button className="nav-link logout" type="submit"><span>↪</span>Cerrar sesión</button></form>
+      <LogoutButton />
     </aside>
   );
 }

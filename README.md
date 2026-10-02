@@ -32,6 +32,20 @@ En desarrollo activo. Actualmente incluye administración de alumnos, credencial
 - Invalidación inmediata de sesiones pertenecientes a usuarios desactivados o eliminados.
 - Registro de asistencias por NFC, QR o captura manual.
 
+## Roles y permisos
+
+| Función | Superadministración | Administración de evento | Registro | Consulta |
+|---|:---:|:---:|:---:|:---:|
+| Panel general | Sí | Sí | Sí | Sí |
+| Crear y administrar congresos asignados | Sí | Sí | No | No |
+| Administrar sesiones y alumnos | Sí | Sí | No | No |
+| Generar credenciales QR/NFC | Sí | Sí | No | No |
+| Escanear QR/NFC y registrar asistencias | Sí | Sí | Sí, en congresos asignados | No |
+| Consultar alumnos y asistencias | Sí | Sí | No | Sí, sólo lectura |
+| Administrar usuarios y asignaciones | Sí | No | No | No |
+
+Los permisos se validan nuevamente en la API. Ocultar una opción del menú no concede ni revoca acceso por sí mismo. El usuario de **Registro** necesita estar asignado al congreso activo para recibir sus sesiones en el escáner.
+
 ## Uso de NFC
 
 Web NFC funciona desde Chrome en Android, con NFC encendido y el sistema abierto mediante HTTPS. En la credencial recién generada se utiliza **Configurar chip NFC** para escribir el token y **Verificar chip** para confirmar que corresponde al alumno. En el módulo **Escanear** se selecciona una sesión y se activa **Iniciar lector NFC** para registrar varios gafetes consecutivamente.

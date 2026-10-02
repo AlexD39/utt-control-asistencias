@@ -6,7 +6,7 @@ const demoCodes = ["DEMO-ANA-7K2P", "DEMO-DIEGO-8M4Q", "DEMO-FER-2N9R", "DEMO-JO
 
 export async function GET() {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  if (!user || !["super_admin", "event_admin", "scanner"].includes(user.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   if (process.env.NODE_ENV === "production") return NextResponse.json({ codes: [] });
   const { rows } = await query<{ code: string }>(`SELECT candidate.code FROM unnest($1::text[]) candidate(code)
     JOIN badges b ON b.token_hash = encode(digest(candidate.code, 'sha256'), 'hex')
