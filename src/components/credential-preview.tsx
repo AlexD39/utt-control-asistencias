@@ -100,7 +100,11 @@ export function CredentialPreview({ student }: { student: CredentialStudent }) {
   return <div className="credential-workspace">
     <div className="credential-print" id="credential-print">
       <div className="credential-accent" />
-      <div className="credential-brand"><InstitutionBrand /><small>CREDENCIAL DE CONGRESO 2026</small></div>
+      <div className="credential-brand">
+        <InstitutionBrand compact />
+        <span className="credential-system-name">Control de asistencias</span>
+        <small>CREDENCIAL DE CONGRESO 2026</small>
+      </div>
       <div className="credential-photo">{student.name.split(" ").slice(0, 2).map((part) => part[0]).join("")}</div>
       <h2>{student.name}</h2>
       <p>{student.program}</p>
