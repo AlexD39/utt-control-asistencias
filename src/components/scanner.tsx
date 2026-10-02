@@ -17,6 +17,7 @@ export function Scanner() {
   const [nfcListening, setNfcListening] = useState(false);
   const [nfcMessage, setNfcMessage] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
+  const resultRef = useRef<HTMLElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanningRef = useRef(false);
   const nfcControllerRef = useRef<AbortController | null>(null);
@@ -33,6 +34,12 @@ export function Scanner() {
     });
     return () => { stopCamera(); stopNfc(); };
   }, []);
+
+  useEffect(() => {
+    if (result && window.matchMedia("(max-width: 640px)").matches) {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [result]);
 
   async function register(badgeCode: string, source: "qr" | "nfc" | "manual" = "manual") {
     if (!sessionId || !badgeCode.trim() || processingRef.current) return;
@@ -118,6 +125,10 @@ export function Scanner() {
   async function startCamera() {
     setResult(null);
     stopNfc();
+    if (!sessionId) {
+      setResult({ result: "error", message: "Selecciona una sesión antes de activar la cámara." });
+      return;
+    }
     const BarcodeDetectorClass = (window as unknown as { BarcodeDetector?: new (options: { formats: string[] }) => { detect: (video: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector;
     if (!BarcodeDetectorClass) {
       setResult({ result: "error", message: "Este navegador no incluye lector QR. Usa Chrome/Edge actualizado o captura el código manualmente." });
@@ -150,19 +161,36 @@ export function Scanner() {
     }
   }
 
+  async function scanNext() {
+    setResult(null);
+    setCode("");
+    await startCamera();
+  }
+
   const resultClass = result?.result === "accepted" ? "success" : result?.result === "duplicate" ? "warning" : "error";
+  const resultTitle = result?.result === "accepted"
+    ? "Registro confirmado"
+    : result?.result === "duplicate"
+      ? "Asistencia ya registrada"
+      : result?.message;
+  const resultHelp = result?.result === "accepted"
+    ? "La asistencia se guardó correctamente. Puedes continuar con el siguiente alumno."
+    : result?.result === "duplicate"
+      ? "No se creó un registro adicional para esta sesión."
+      : "Revisa el código e inténtalo nuevamente.";
+
   return <div className="scanner-layout">
     <section className="card scanner-card">
-      <div className="card-head"><div><h2>Punto de registro</h2><p>Selecciona una sesión antes de comenzar.</p></div><span className="pill pill-live">● LISTO</span></div>
-      <label>Sesión activa<select value={sessionId} onChange={(e) => setSessionId(e.target.value)} disabled={nfcListening}>{sessions.map((session) => <option key={session.id} value={session.id}>{session.name} · {session.room}</option>)}</select></label>
-      <div className="scan-methods"><button className={nfcListening ? "button button-primary" : "button button-secondary"} onClick={nfcListening ? stopNfc : startNfc} disabled={!sessionId}>{nfcListening ? "Detener lector NFC" : "Iniciar lector NFC"}</button><span>{nfcMessage || "Disponible en Chrome para Android mediante HTTPS."}</span></div>
-      {camera ? <div className="camera-box"><video ref={videoRef} muted playsInline /><div className="camera-frame" /><button onClick={stopCamera} className="button button-ghost">Cancelar cámara</button></div> : <button className="camera-trigger" onClick={startCamera}><span>⌗</span><strong>Escanear código QR</strong><small>Usar la cámara posterior</small></button>}
+      <div className="card-head scanner-head"><div><h2>Punto de registro</h2><p>Elige la sesión y acerca la credencial a la cámara.</p></div><span className="pill pill-live">● LISTO</span></div>
+      <label>Sesión activa<select value={sessionId} onChange={(event) => setSessionId(event.target.value)} disabled={nfcListening}>{sessions.length === 0 && <option value="">No hay sesiones disponibles</option>}{sessions.map((session) => <option key={session.id} value={session.id}>{session.name} · {session.room}</option>)}</select></label>
+      {camera ? <div className="camera-box"><video ref={videoRef} muted playsInline /><div className="camera-frame"><span>Coloca el QR dentro del recuadro</span></div><button onClick={stopCamera} className="button button-ghost">Cancelar cámara</button></div> : <button className="camera-trigger" onClick={startCamera} disabled={!sessionId || loading}><span>⌗</span><strong>Escanear código QR</strong><small>Abre la cámara posterior</small></button>}
+      <div className="scan-methods"><button className={nfcListening ? "button button-primary" : "button button-secondary"} onClick={nfcListening ? stopNfc : startNfc} disabled={!sessionId}>{nfcListening ? "Detener lector NFC" : "Usar chip NFC"}</button><span>{nfcMessage || "Opción disponible en teléfonos Android compatibles con NFC."}</span></div>
       <div className="divider"><span>o captura un código de prueba</span></div>
-      <form onSubmit={submit} className="manual-form"><input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Código del gafete" autoComplete="off" /><button className="button button-primary" disabled={loading}>{loading ? "Validando…" : "Registrar"}</button></form>
+      <form onSubmit={submit} className="manual-form"><input value={code} onChange={(event) => setCode(event.target.value)} placeholder="Código del gafete" autoComplete="off" /><button className="button button-primary" disabled={loading || !sessionId}>{loading ? "Validando…" : "Registrar"}</button></form>
       <div className="demo-codes">{demoCodes.length > 0 ? demoCodes.map((demo) => <button type="button" key={demo} onClick={() => setCode(demo)}>{demo}</button>) : <small>No hay códigos demo vigentes.</small>}</div>
     </section>
-    <section className={`scan-result ${result ? resultClass : "idle"}`}>
-      {!result ? <><span className="result-icon">⌁</span><h2>Esperando lectura</h2><p>El resultado aparecerá aquí inmediatamente.</p></> : <><span className="result-icon">{resultClass === "success" ? "✓" : resultClass === "warning" ? "!" : "×"}</span><p className="eyebrow">{result.result.replaceAll("_", " ")}</p><h2>{result.message}</h2>{result.student && <div className="student-result"><strong>{result.student.name}</strong><span>{result.student.enrollment}</span><span>{result.student.program}</span></div>}</>}
+    <section ref={resultRef} className={`scan-result ${result ? resultClass : "idle"}`} aria-live="polite">
+      {!result ? <><span className="result-icon">⌁</span><h2>Listo para escanear</h2><p>Selecciona una sesión y usa la cámara para comenzar.</p></> : <><span className="result-icon">{resultClass === "success" ? "✓" : resultClass === "warning" ? "!" : "×"}</span><p className="eyebrow">{result.result === "accepted" ? "ASISTENCIA GUARDADA" : result.result === "duplicate" ? "REGISTRO DUPLICADO" : "NO SE PUDO REGISTRAR"}</p><h2>{resultTitle}</h2><p className="result-help">{resultHelp}</p>{result.student && <div className="student-result"><strong>{result.student.name}</strong><span>{result.student.enrollment} · {result.student.program}</span>{result.session && <span>{result.session}</span>}</div>}{(result.result === "accepted" || result.result === "duplicate") && <button type="button" className="button result-next" onClick={scanNext}>Escanear siguiente</button>}</>}
     </section>
   </div>;
 }
