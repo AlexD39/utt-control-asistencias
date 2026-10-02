@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { BadgeCheck, CheckCircle2, UserPlus } from "lucide-react";
 import { CredentialPreview } from "@/components/credential-preview";
 
 type CreatedStudent = { id: string; name: string; enrollment: string; program: string; credential: string };
@@ -37,7 +38,7 @@ export function StudentForm() {
 
   if (student) return <div className="student-created-flow">
     <div ref={successRef} className="student-created-message" role="status" aria-live="polite">
-      <span className="student-created-icon">✓</span>
+      <span className="student-created-icon"><CheckCircle2 aria-hidden /></span>
       <div className="student-created-copy">
         <p className="eyebrow">REGISTRO COMPLETADO</p>
         <h2>Alumno registrado correctamente</h2>
@@ -58,8 +59,8 @@ export function StudentForm() {
       <label>Correo institucional<input name="email" type="email" placeholder="alumno@universidad.edu.mx" /></label>
       <label>Programa o carrera<input name="program" placeholder="Ej. Ingeniería en Sistemas" minLength={2} required /></label>
     </div>
-    <div className="auto-credential"><span>✦</span><div><strong>Credencial automática</strong><p>Al guardar se generará un token seguro, el código QR y la vista previa lista para imprimir.</p></div></div>
+    <div className="auto-credential"><span><BadgeCheck aria-hidden /></span><div><strong>Credencial automática</strong><p>Al guardar se generará un token seguro, el código QR y la vista previa lista para imprimir.</p></div></div>
     {error && <div className="alert alert-error" role="alert">{error}</div>}
-    <div className="form-actions"><Link href="/students" className="button button-secondary">Cancelar</Link><button className="button button-primary" disabled={loading}>{loading ? "Generando…" : "Registrar y generar credencial"}</button></div>
+    <div className="form-actions"><Link href="/students" className="button button-secondary">Cancelar</Link><button className="button button-primary" disabled={loading}><UserPlus aria-hidden />{loading ? "Generando…" : "Registrar y generar credencial"}</button></div>
   </form>;
 }

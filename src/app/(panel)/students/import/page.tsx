@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { StudentImport } from "@/components/student-import";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
@@ -16,7 +17,7 @@ export default async function ImportStudentsPage({ searchParams }: { searchParam
     eventName = event.rows[0].name;
   }
   return <>
-    <div className="page-heading"><div><p className="eyebrow">PADRÓN · IMPORTACIÓN</p><h1>Importar alumnos</h1><p>{eventName ? "Se asignarán a " + eventName + "." : "Carga o actualiza el padrón utilizando un archivo CSV."}</p></div><Link href={eventId ? "/events/" + eventId : "/students"} className="button button-secondary">← Volver</Link></div>
+    <div className="page-heading"><div><p className="eyebrow">PADRÓN · IMPORTACIÓN</p><h1>Importar alumnos</h1><p>{eventName ? "Se asignarán a " + eventName + "." : "Carga o actualiza el padrón utilizando un archivo CSV."}</p></div><Link href={eventId ? "/events/" + eventId : "/students"} className="button button-secondary"><ArrowLeft aria-hidden />Volver</Link></div>
     <StudentImport eventId={eventId} eventName={eventName} />
   </>;
 }

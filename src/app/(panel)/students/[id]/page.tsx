@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { ReissueCredential } from "@/components/reissue-credential";
 import { StudentEditForm } from "@/components/student-edit-form";
@@ -24,7 +25,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
   const student = studentResult.rows[0];
   if (!student) notFound();
 
-  return <><div className="page-heading"><div><p className="eyebrow">EXPEDIENTE DEL ALUMNO</p><h1>{student.name}</h1><p>{student.enrollment} · {student.program}</p></div><Link href="/students" className="button button-secondary">← Volver al padrón</Link></div>
+  return <><div className="page-heading"><div><p className="eyebrow">EXPEDIENTE DEL ALUMNO</p><h1>{student.name}</h1><p>{student.enrollment} · {student.program}</p></div><Link href="/students" className="button button-secondary"><ArrowLeft aria-hidden />Volver al padrón</Link></div>
     <section className="student-profile card"><div className="profile-main"><span className="profile-photo">{initials(student.name)}</span><div><span className={student.active ? "pill pill-success" : "pill"}>{student.active ? "ALUMNO ACTIVO" : "INACTIVO"}</span><h2>{student.name}</h2><p>{student.email ?? "Sin correo registrado"}</p></div></div><div className="profile-stats"><div><strong>{attendanceResult.rows.length}</strong><span>asistencias</span></div><div><strong>{student.nfc_verified_at ? "NFC listo" : student.badge_active ? "QR activa" : "Sin activar"}</strong><span>credencial</span></div><div><strong>{student.issued_at ? formatDate(student.issued_at, false) : "—"}</strong><span>última emisión</span></div></div></section>
     {user.role !== "viewer" && <StudentEditForm student={student} />}
     {user.role !== "viewer" && <ReissueCredential student={{ id: student.id, name: student.name, enrollment: student.enrollment, program: student.program }} nfcVerifiedAt={student.nfc_verified_at?.toISOString()} />}

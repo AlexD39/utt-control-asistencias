@@ -2,6 +2,7 @@
 
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
+import { AlertTriangle, Check, CheckCircle2, Clipboard, Nfc, Printer } from "lucide-react";
 import { InstitutionBrand } from "@/components/institution-brand";
 import { getNdefReader, nfcErrorMessage, nfcPayload, readCredentialFromNdef } from "@/lib/web-nfc";
 
@@ -114,11 +115,11 @@ export function CredentialPreview({ student }: { student: CredentialStudent }) {
       <small className="credential-help">Presenta este código en cada acceso</small>
     </div>
     <div className="credential-actions">
-      <button className="button button-primary" onClick={() => window.print()}>Imprimir credencial</button>
-      <button className="button button-secondary" onClick={writeNfc} disabled={nfcBusy}>Configurar chip NFC</button>
-      <button className="button button-secondary" onClick={verifyNfc} disabled={nfcBusy}>Verificar chip</button>
-      <button className="button button-secondary" onClick={async () => { await navigator.clipboard.writeText(student.credential); setCopied(true); }}>{copied ? "Token copiado ✓" : "Copiar token"}</button>
-      <div className={nfcSupported ? "nfc-support supported" : "nfc-support"}><span>{nfcSupported ? "✓" : "!"}</span><div><strong>{nfcSupported ? "NFC disponible" : "NFC no disponible en este dispositivo"}</strong><small>{nfcSupported ? "Mantén esta pantalla visible y acerca una etiqueta NDEF." : "Necesitas Chrome en Android, NFC encendido y una conexión HTTPS."}</small></div></div>
+      <button className="button button-primary" onClick={() => window.print()}><Printer aria-hidden />Imprimir credencial</button>
+      <button className="button button-secondary" onClick={writeNfc} disabled={nfcBusy}><Nfc aria-hidden />Configurar chip NFC</button>
+      <button className="button button-secondary" onClick={verifyNfc} disabled={nfcBusy}><CheckCircle2 aria-hidden />Verificar chip</button>
+      <button className="button button-secondary" onClick={async () => { await navigator.clipboard.writeText(student.credential); setCopied(true); }}>{copied ? <><Check aria-hidden />Token copiado</> : <><Clipboard aria-hidden />Copiar token</>}</button>
+      <div className={nfcSupported ? "nfc-support supported" : "nfc-support"}><span>{nfcSupported ? <CheckCircle2 aria-hidden /> : <AlertTriangle aria-hidden />}</span><div><strong>{nfcSupported ? "NFC disponible" : "NFC no disponible en este dispositivo"}</strong><small>{nfcSupported ? "Mantén esta pantalla visible y acerca una etiqueta NDEF." : "Necesitas Chrome en Android, NFC encendido y una conexión HTTPS."}</small></div></div>
       {nfcMessage && <p className={"nfc-message " + nfcStatus}>{nfcMessage}</p>}
       <div className="security-note"><strong>Importante</strong><p>Este token solamente se muestra al generarlo. Si se pierde, emite una nueva credencial; la anterior dejará de funcionar.</p></div>
     </div>

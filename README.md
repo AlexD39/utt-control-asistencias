@@ -135,6 +135,9 @@ Las variables locales nunca deben subirse al repositorio. Para producción se de
 | npm run dev | Inicia el servidor de desarrollo |
 | npm run build | Genera y valida la compilación de producción |
 | npm run check | Comprueba los tipos de TypeScript |
+| npm run test:roles | Recorre las rutas y permisos de los cuatro roles; requiere el servidor encendido |
+| npm run test:nfc | Simula payloads, lectura NDEF y errores de Web NFC sin hardware |
+| npm run test:nfc:integration | Simula una lectura NFC completa contra la API local; requiere el servidor encendido |
 | npm run db:up | Levanta PostgreSQL |
 | npm run db:down | Detiene PostgreSQL |
 | npm run db:logs | Muestra los registros de PostgreSQL |
@@ -158,6 +161,8 @@ Las variables locales nunca deben subirse al repositorio. Para producción se de
 - DEMO-EMI-3B8Z
 
 Capturar dos veces el mismo código en la misma sesión demuestra el control de duplicados. El primer intento crea la asistencia; el segundo únicamente entra en la bitácora.
+
+Las pruebas automatizadas comprueban el contenido NDEF y el registro con origen NFC sin conservar asistencias de prueba. La validación final del campo de radio, permisos del sistema y distancia de lectura requiere un Android compatible con NFC, Chrome, HTTPS y una etiqueta NDEF física.
 
 ## Reiniciar los datos simulados
 

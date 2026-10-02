@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/format";
 
 export type SessionData = { id: string; name: string; room: string; startsAt: string; endsAt: string; active: boolean };
@@ -69,7 +70,7 @@ export function SessionManager({ eventId, eventStartsAt, eventEndsAt, sessions }
 
   const formSession = selected ?? (editing === "new" ? { name: "", room: "", startsAt: eventStartsAt, endsAt: eventEndsAt, active: true } : null);
   return <section className="session-section">
-    <div className="section-heading"><div><p className="eyebrow">AGENDA</p><h2>Sesiones del congreso</h2><p>Estas son las opciones disponibles en el escáner de asistencia.</p></div><button className="button button-primary" onClick={() => { setEditing("new"); setError(""); }}>＋ Nueva sesión</button></div>
+    <div className="section-heading"><div><p className="eyebrow">AGENDA</p><h2>Sesiones del congreso</h2><p>Estas son las opciones disponibles en el escáner de asistencia.</p></div><button className="button button-primary" onClick={() => { setEditing("new"); setError(""); }}><Plus aria-hidden />Nueva sesión</button></div>
     {formSession && <form key={editing} className="card entity-form session-form" onSubmit={save}>
       <div className="card-head"><h2>{selected ? "Editar sesión" : "Nueva sesión"}</h2></div>
       <div className="form-grid">
@@ -85,7 +86,7 @@ export function SessionManager({ eventId, eventStartsAt, eventEndsAt, sessions }
     {!formSession && error && <div className="alert alert-error">{error}</div>}
     <div className="session-grid">{sessions.map((session) => <article className="card session-card" key={session.id}>
       <div><span className={session.active ? "pill pill-success" : "pill"}>{session.active ? "DISPONIBLE" : "INACTIVA"}</span><h3>{session.name}</h3><p>{session.room}</p><small>{formatDate(session.startsAt)} – {formatDate(session.endsAt)}</small></div>
-      <div className="session-actions"><button className="button button-secondary" onClick={() => { setEditing(session.id); setError(""); }}>Editar</button><button className="button button-secondary" onClick={() => updateActive(session)} disabled={loading}>{session.active ? "Desactivar" : "Activar"}</button><button className="button button-danger button-icon" title="Eliminar" onClick={() => remove(session)} disabled={loading}>×</button></div>
+      <div className="session-actions"><button className="button button-secondary" onClick={() => { setEditing(session.id); setError(""); }}>Editar</button><button className="button button-secondary" onClick={() => updateActive(session)} disabled={loading}>{session.active ? "Desactivar" : "Activar"}</button><button className="button button-danger button-icon" title="Eliminar" aria-label={`Eliminar ${session.name}`} onClick={() => remove(session)} disabled={loading}><Trash2 aria-hidden /></button></div>
     </article>)}</div>
     {sessions.length === 0 && !formSession && <div className="card empty"><strong>No hay sesiones todavía</strong><p>Crea la primera para habilitar el registro de asistencias.</p></div>}
   </section>;

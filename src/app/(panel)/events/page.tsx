@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { formatDate } from "@/lib/format";
@@ -25,7 +26,7 @@ export default async function EventsPage() {
     <div className="page-heading"><div><p className="eyebrow">ADMINISTRACIÓN</p><h1>Congresos</h1><p>El sistema opera con un congreso activo, conservando el historial de los anteriores.</p></div></div>
     <div className="event-list">{events.rows.map((event) => <Link href={"/events/" + event.id} className="card event-list-card" key={event.id}>
       <div><span className={event.status === "active" ? "pill pill-live" : "pill"}>{statusLabel[event.status]}</span><h2>{event.name}</h2><p>{event.venue}</p><small>{formatDate(event.starts_at)} – {formatDate(event.ends_at)}</small></div>
-      <div className="event-card-metrics"><span><strong>{event.sessions}</strong> sesiones</span><span><strong>{event.students}</strong> alumnos</span><span><strong>{event.attendances}</strong> asistencias</span><b>{canManage ? "Administrar →" : "Ver detalle →"}</b></div>
+      <div className="event-card-metrics"><span><strong>{event.sessions}</strong> sesiones</span><span><strong>{event.students}</strong> alumnos</span><span><strong>{event.attendances}</strong> asistencias</span><b className="inline-link">{canManage ? "Administrar" : "Ver detalle"}<ArrowRight aria-hidden /></b></div>
     </Link>)}</div>
     {events.rows.length === 0 && <div className="card empty"><strong>No hay congresos registrados</strong></div>}
     {canManage && <div className="create-event-section"><p className="eyebrow">CREAR</p><EventForm /></div>}

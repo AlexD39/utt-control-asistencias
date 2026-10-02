@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { CheckCircle2, Download, FileUp, Upload } from "lucide-react";
 
 type ImportResult = { total: number; created: number; updated: number };
 
@@ -34,7 +35,7 @@ export function StudentImport({ eventId, eventName }: { eventId?: string; eventN
   }
 
   if (result) return <section className="card import-complete">
-    <span className="import-check">✓</span><h2>Importación terminada</h2><p>Se procesaron {result.total} alumnos correctamente.</p>
+    <span className="import-check"><CheckCircle2 aria-hidden /></span><h2>Importación terminada</h2><p>Se procesaron {result.total} alumnos correctamente.</p>
     <div className="import-metrics"><div><strong>{result.created}</strong><span>Nuevos</span></div><div><strong>{result.updated}</strong><span>Actualizados</span></div></div>
     <div className="heading-actions"><Link href={eventId ? "/events/" + eventId : "/students"} className="button button-primary">{eventId ? "Volver al congreso" : "Ver alumnos"}</Link><button className="button button-secondary" onClick={() => { setResult(null); setFile(null); }}>Importar otro archivo</button></div>
   </section>;
@@ -43,11 +44,11 @@ export function StudentImport({ eventId, eventName }: { eventId?: string; eventN
     <div className="form-section-head"><span>CSV</span><div><h2>Selecciona el archivo</h2><p>Los alumnos existentes se actualizarán usando su matrícula y se asignarán a {eventName ?? "el congreso activo"}. Los nuevos quedarán listos para generar su credencial.</p></div></div>
     <label className="file-drop">
       <input type="file" accept=".csv,text/csv" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
-      <span>↑</span><strong>{file?.name ?? "Seleccionar archivo CSV"}</strong><small>Máximo 5,000 alumnos o 2 MB</small>
+      <span><FileUp aria-hidden /></span><strong>{file?.name ?? "Seleccionar archivo CSV"}</strong><small>Máximo 5,000 alumnos o 2 MB</small>
     </label>
     <div className="csv-columns"><strong>Columnas requeridas</strong><span>Matrícula</span><span>Nombre</span><span>Programa</span><span>Correo (opcional)</span></div>
-    <a href="/plantilla-alumnos.csv" download className="template-link">↓ Descargar plantilla de ejemplo</a>
+    <a href="/plantilla-alumnos.csv" download className="template-link"><Download aria-hidden />Descargar plantilla de ejemplo</a>
     {error && <div className="alert alert-error"><strong>{error}</strong>{details.map((detail) => <div key={detail}>{detail}</div>)}</div>}
-    <div className="form-actions"><Link href={eventId ? "/events/" + eventId : "/students"} className="button button-secondary">Cancelar</Link><button className="button button-primary" disabled={!file || loading}>{loading ? "Importando…" : "Importar alumnos"}</button></div>
+    <div className="form-actions"><Link href={eventId ? "/events/" + eventId : "/students"} className="button button-secondary">Cancelar</Link><button className="button button-primary" disabled={!file || loading}><Upload aria-hidden />{loading ? "Importando…" : "Importar alumnos"}</button></div>
   </form>;
 }

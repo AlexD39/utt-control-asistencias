@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight, Download, Plus, Upload } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { initials } from "@/lib/format";
@@ -43,9 +44,9 @@ export default async function StudentsPage({
     <div className="page-heading">
       <div><p className="eyebrow">PADRÓN</p><h1>Alumnos</h1><p>{studentsResult.rows.length} participantes coinciden con la consulta.</p></div>
       <div className="heading-actions">
-        <a className="button button-secondary" href={exportUrl}>↓ Exportar CSV</a>
-        {canManage && <Link className="button button-secondary" href="/students/import">↑ Importar CSV</Link>}
-        {canManage && <Link className="button button-primary" href="/students/new">＋ Registrar alumno</Link>}
+        <a className="button button-secondary" href={exportUrl}><Download aria-hidden />Exportar CSV</a>
+        {canManage && <Link className="button button-secondary" href="/students/import"><Upload aria-hidden />Importar CSV</Link>}
+        {canManage && <Link className="button button-primary" href="/students/new"><Plus aria-hidden />Registrar alumno</Link>}
       </div>
     </div>
     <form className="student-filters card" method="get">
@@ -63,7 +64,7 @@ export default async function StudentsPage({
           <td>{row.program}</td>
           <td>{row.badge ? <span className={row.badge_active ? "pill pill-success" : "pill"}>{row.badge_active ? row.badge : "INACTIVA"}</span> : "Sin asignar"}</td>
           <td><span className={row.active ? "pill pill-success" : "pill"}>{row.active ? "ACTIVO" : "INACTIVO"}</span></td>
-          <td><Link className="table-action" href={"/students/" + row.id}>Ver expediente →</Link></td>
+          <td><Link className="table-action inline-link" href={"/students/" + row.id}>Ver expediente <ArrowRight aria-hidden /></Link></td>
         </tr>)}
       </tbody></table></div>
     </section>

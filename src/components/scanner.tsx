@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { AlertTriangle, CheckCircle2, CircleX, Nfc, ScanLine } from "lucide-react";
 import { getNdefReader, nfcErrorMessage, readCredentialFromNdef } from "@/lib/web-nfc";
 
 type Session = { id: string; name: string; room: string; starts_at: string };
@@ -200,17 +201,17 @@ export function Scanner() {
 
   return <div className="scanner-layout">
     <section className="card scanner-card">
-      <div className="card-head scanner-head"><div><h2>Punto de registro</h2><p>Elige la sesión y acerca la credencial a la cámara.</p></div><span className="pill pill-live">● LISTO</span></div>
+      <div className="card-head scanner-head"><div><h2>Punto de registro</h2><p>Elige la sesión y acerca la credencial a la cámara.</p></div><span className="pill pill-live">LISTO</span></div>
       <label>Sesión activa<select value={sessionId} onChange={(event) => setSessionId(event.target.value)} disabled={nfcListening || loadingSessions}>{sessions.length === 0 && <option value="">{loadingSessions ? "Consultando sesiones…" : "No hay sesiones disponibles"}</option>}{sessions.map((session) => <option key={session.id} value={session.id}>{session.name} · {session.room}</option>)}</select></label>
       {sessionError && <div className="alert alert-error" role="alert">{sessionError}</div>}
-      {camera ? <div className="camera-box"><video ref={videoRef} muted playsInline /><div className="camera-frame"><span>Coloca el QR dentro del recuadro</span></div><button onClick={stopCamera} className="button button-ghost">Cancelar cámara</button></div> : <button className="camera-trigger" onClick={startCamera} disabled={!sessionId || loading}><span>⌗</span><strong>Escanear código QR</strong><small>Abre la cámara posterior</small></button>}
-      <div className="scan-methods"><button className={nfcListening ? "button button-primary" : "button button-secondary"} onClick={nfcListening ? stopNfc : startNfc} disabled={!sessionId}>{nfcListening ? "Detener lector NFC" : "Usar chip NFC"}</button><span>{nfcMessage || "Opción disponible en teléfonos Android compatibles con NFC."}</span></div>
+      {camera ? <div className="camera-box"><video ref={videoRef} muted playsInline /><div className="camera-frame"><span>Coloca el QR dentro del recuadro</span></div><button onClick={stopCamera} className="button button-ghost">Cancelar cámara</button></div> : <button className="camera-trigger" onClick={startCamera} disabled={!sessionId || loading}><span><ScanLine aria-hidden /></span><strong>Escanear código QR</strong><small>Abre la cámara posterior</small></button>}
+      <div className="scan-methods"><button className={nfcListening ? "button button-primary" : "button button-secondary"} onClick={nfcListening ? stopNfc : startNfc} disabled={!sessionId}><Nfc aria-hidden />{nfcListening ? "Detener lector NFC" : "Usar chip NFC"}</button><span>{nfcMessage || "Opción disponible en teléfonos Android compatibles con NFC."}</span></div>
       <div className="divider"><span>o captura un código de prueba</span></div>
       <form onSubmit={submit} className="manual-form"><input value={code} onChange={(event) => setCode(event.target.value)} placeholder="Código del gafete" autoComplete="off" /><button className="button button-primary" disabled={loading || !sessionId}>{loading ? "Validando…" : "Registrar"}</button></form>
       <div className="demo-codes">{demoCodes.length > 0 ? demoCodes.map((demo) => <button type="button" key={demo} onClick={() => setCode(demo)}>{demo}</button>) : <small>No hay códigos demo vigentes.</small>}</div>
     </section>
     <section ref={resultRef} className={`scan-result ${result ? resultClass : "idle"}`} aria-live="polite">
-      {!result ? <><span className="result-icon">⌁</span><h2>Listo para escanear</h2><p>Selecciona una sesión y usa la cámara para comenzar.</p></> : <><span className="result-icon">{resultClass === "success" ? "✓" : resultClass === "warning" ? "!" : "×"}</span><p className="eyebrow">{result.result === "accepted" ? "ASISTENCIA GUARDADA" : result.result === "duplicate" ? "REGISTRO DUPLICADO" : "NO SE PUDO REGISTRAR"}</p><h2>{resultTitle}</h2><p className="result-help">{resultHelp}</p>{result.student && <div className="student-result"><strong>{result.student.name}</strong><span>{result.student.enrollment} · {result.student.program}</span>{result.session && <span>{result.session}</span>}</div>}{(result.result === "accepted" || result.result === "duplicate") && <button type="button" className="button result-next" onClick={scanNext}>Escanear siguiente</button>}</>}
+      {!result ? <><span className="result-icon"><ScanLine aria-hidden /></span><h2>Listo para escanear</h2><p>Selecciona una sesión y usa la cámara para comenzar.</p></> : <><span className="result-icon">{resultClass === "success" ? <CheckCircle2 aria-hidden /> : resultClass === "warning" ? <AlertTriangle aria-hidden /> : <CircleX aria-hidden />}</span><p className="eyebrow">{result.result === "accepted" ? "ASISTENCIA GUARDADA" : result.result === "duplicate" ? "REGISTRO DUPLICADO" : "NO SE PUDO REGISTRAR"}</p><h2>{resultTitle}</h2><p className="result-help">{resultHelp}</p>{result.student && <div className="student-result"><strong>{result.student.name}</strong><span>{result.student.enrollment} · {result.student.program}</span>{result.session && <span>{result.session}</span>}</div>}{(result.result === "accepted" || result.result === "duplicate") && <button type="button" className="button result-next" onClick={scanNext}><ScanLine aria-hidden />Escanear siguiente</button>}</>}
     </section>
   </div>;
 }
