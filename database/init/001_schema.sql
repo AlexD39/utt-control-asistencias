@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TYPE user_role AS ENUM ('super_admin', 'event_admin', 'scanner', 'viewer');
 CREATE TYPE event_status AS ENUM ('draft', 'active', 'closed');
-CREATE TYPE scan_result AS ENUM ('accepted', 'duplicate', 'invalid_badge', 'inactive_badge', 'wrong_event');
+CREATE TYPE scan_result AS ENUM ('accepted', 'duplicate', 'invalid_badge', 'inactive_badge', 'wrong_event', 'not_enrolled', 'usage_exhausted');
 
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -46,6 +46,7 @@ CREATE TABLE students (
 CREATE TABLE event_students (
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  credential_use_limit INTEGER CHECK (credential_use_limit IS NULL OR credential_use_limit > 0),
   registered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (event_id, student_id)
 );
@@ -53,12 +54,25 @@ CREATE TABLE event_students (
 CREATE TABLE sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  code TEXT NOT NULL,
   name TEXT NOT NULL,
   room TEXT NOT NULL,
   starts_at TIMESTAMPTZ NOT NULL,
   ends_at TIMESTAMPTZ NOT NULL,
+  session_type TEXT NOT NULL DEFAULT 'general' CHECK (session_type IN ('general', 'workshop', 'access')),
+  capacity INTEGER CHECK (capacity IS NULL OR capacity > 0),
+  requires_enrollment BOOLEAN NOT NULL DEFAULT FALSE,
+  consumes_credential_use BOOLEAN NOT NULL DEFAULT TRUE,
   active BOOLEAN NOT NULL DEFAULT TRUE,
+  UNIQUE (event_id, code),
   CHECK (ends_at > starts_at)
+);
+
+CREATE TABLE session_students (
+  session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  registered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (session_id, student_id)
 );
 
 CREATE TABLE badges (
@@ -102,6 +116,7 @@ CREATE TABLE scan_attempts (
 );
 
 CREATE INDEX idx_sessions_event ON sessions(event_id);
+CREATE INDEX idx_session_students_student ON session_students(student_id);
 CREATE INDEX idx_attendances_event_time ON attendances(event_id, scanned_at DESC);
 CREATE INDEX idx_attendances_session ON attendances(session_id);
 CREATE INDEX idx_scan_attempts_time ON scan_attempts(created_at DESC);

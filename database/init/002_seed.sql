@@ -21,10 +21,13 @@ INSERT INTO students (id, enrollment, name, email, program) VALUES
 INSERT INTO event_students (event_id, student_id)
 SELECT '20000000-0000-0000-0000-000000000001', id FROM students;
 
-INSERT INTO sessions (id, event_id, name, room, starts_at, ends_at) VALUES
-  ('40000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Registro general', 'Acceso principal', '2026-10-15 08:00:00-06', '2026-10-15 10:00:00-06'),
-  ('40000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'Conferencia inaugural', 'Auditorio A', '2026-10-15 10:00:00-06', '2026-10-15 12:00:00-06'),
-  ('40000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001', 'Taller de inteligencia artificial', 'Laboratorio 3', '2026-10-15 13:00:00-06', '2026-10-15 15:00:00-06');
+INSERT INTO sessions (id, event_id, code, name, room, starts_at, ends_at, session_type, capacity, requires_enrollment) VALUES
+  ('40000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'REG-GEN', 'Registro general', 'Acceso principal', '2026-10-15 08:00:00-06', '2026-10-15 10:00:00-06', 'access', NULL, FALSE),
+  ('40000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'CONF-INA', 'Conferencia inaugural', 'Auditorio A', '2026-10-15 10:00:00-06', '2026-10-15 12:00:00-06', 'general', NULL, FALSE),
+  ('40000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001', 'TALLER-IA', 'Taller de inteligencia artificial', 'Laboratorio 3', '2026-10-15 13:00:00-06', '2026-10-15 15:00:00-06', 'workshop', 30, TRUE);
+
+INSERT INTO session_students (session_id, student_id)
+SELECT '40000000-0000-0000-0000-000000000003', id FROM students;
 
 INSERT INTO badges (event_id, student_id, token_hash, label) VALUES
   ('20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', encode(digest('DEMO-ANA-7K2P', 'sha256'), 'hex'), 'Gafete 001'),

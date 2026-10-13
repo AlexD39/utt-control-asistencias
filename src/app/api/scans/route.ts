@@ -20,6 +20,8 @@ type BadgeRow = {
   program: string;
 };
 
+type AccessRow = { credential_use_limit: number | null };
+
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user || user.role === "viewer") return NextResponse.json({ error: "No autorizado" }, { status: 403 });
@@ -28,8 +30,8 @@ export async function POST(request: Request) {
   const normalizedCode = parsed.data.badgeCode.toUpperCase();
 
   const result = await transaction(async (client) => {
-    const sessionResult = await client.query<{ id: string; event_id: string; name: string }>(
-      `SELECT s.id, s.event_id, s.name FROM sessions s JOIN events e ON e.id = s.event_id
+    const sessionResult = await client.query<{ id: string; event_id: string; name: string; requires_enrollment: boolean; consumes_credential_use: boolean }>(
+      `SELECT s.id, s.event_id, s.name, s.requires_enrollment, s.consumes_credential_use FROM sessions s JOIN events e ON e.id = s.event_id
        WHERE s.id = $1 AND s.active = TRUE AND e.status = 'active' AND ($2::boolean OR EXISTS (
          SELECT 1 FROM event_staff ef WHERE ef.event_id = s.event_id AND ef.user_id = $3
        ))`,
@@ -55,7 +57,45 @@ export async function POST(request: Request) {
     if (failure) {
       await client.query(`INSERT INTO scan_attempts (event_id, session_id, student_id, badge_id, scanned_by, result, source, device_time)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [session.event_id, session.id, badge.student_id, badge.badge_id, user.id, failure, parsed.data.source, parsed.data.deviceTime ?? null]);
-      return { status: 409, body: { result: failure, message: failure === "inactive_badge" ? "El gafete está desactivado" : "El gafete pertenece a otro evento" } };
+      return { status: 409, body: { result: failure, message: failure === "inactive_badge" ? "El gafete está desactivado" : "El gafete pertenece a otro evento", student: { name: badge.name, enrollment: badge.enrollment, program: badge.program }, session: session.name } };
+    }
+
+    const accessResult = await client.query<AccessRow>(`SELECT credential_use_limit FROM event_students
+      WHERE event_id = $1 AND student_id = $2 FOR UPDATE`, [session.event_id, badge.student_id]);
+    const access = accessResult.rows[0];
+    if (!access) {
+      await client.query(`INSERT INTO scan_attempts (event_id, session_id, student_id, badge_id, scanned_by, result, source, device_time)
+        VALUES ($1, $2, $3, $4, $5, 'wrong_event', $6, $7)`, [session.event_id, session.id, badge.student_id, badge.badge_id, user.id, parsed.data.source, parsed.data.deviceTime ?? null]);
+      return { status: 409, body: { result: "wrong_event", message: "El alumno no pertenece a este congreso", student: { name: badge.name, enrollment: badge.enrollment, program: badge.program }, session: session.name } };
+    }
+
+    if (session.requires_enrollment) {
+      const enrollment = await client.query("SELECT 1 FROM session_students WHERE session_id = $1 AND student_id = $2", [session.id, badge.student_id]);
+      if (!enrollment.rows[0]) {
+        await client.query(`INSERT INTO scan_attempts (event_id, session_id, student_id, badge_id, scanned_by, result, source, device_time)
+          VALUES ($1, $2, $3, $4, $5, 'not_enrolled', $6, $7)`, [session.event_id, session.id, badge.student_id, badge.badge_id, user.id, parsed.data.source, parsed.data.deviceTime ?? null]);
+        return { status: 409, body: { result: "not_enrolled", message: "El alumno no está inscrito en esta actividad", student: { name: badge.name, enrollment: badge.enrollment, program: badge.program }, session: session.name } };
+      }
+    }
+
+    const usedResult = await client.query<{ total: number }>(`SELECT COUNT(*)::int total FROM attendances a
+      JOIN sessions s ON s.id = a.session_id
+      WHERE a.event_id = $1 AND a.student_id = $2 AND s.consumes_credential_use`, [session.event_id, badge.student_id]);
+    const usesConsumed = usedResult.rows[0]?.total ?? 0;
+    const remainingBefore = access.credential_use_limit === null ? null : Math.max(0, access.credential_use_limit - usesConsumed);
+    const existingAttendance = await client.query("SELECT 1 FROM attendances WHERE session_id = $1 AND student_id = $2", [session.id, badge.student_id]);
+    if (existingAttendance.rows[0]) {
+      await client.query(`INSERT INTO scan_attempts
+        (event_id, session_id, student_id, badge_id, scanned_by, result, source, device_time)
+        VALUES ($1, $2, $3, $4, $5, 'duplicate', $6, $7)`,
+        [session.event_id, session.id, badge.student_id, badge.badge_id, user.id, parsed.data.source, parsed.data.deviceTime ?? null]);
+      return { status: 200, body: { result: "duplicate", message: "La asistencia ya estaba registrada; no se consumió otro uso", student: { name: badge.name, enrollment: badge.enrollment, program: badge.program }, session: session.name, credential: { reusable: access.credential_use_limit === null, maxUses: access.credential_use_limit, usesConsumed, remainingUses: remainingBefore } } };
+    }
+
+    if (session.consumes_credential_use && remainingBefore !== null && remainingBefore <= 0) {
+      await client.query(`INSERT INTO scan_attempts (event_id, session_id, student_id, badge_id, scanned_by, result, source, device_time)
+        VALUES ($1, $2, $3, $4, $5, 'usage_exhausted', $6, $7)`, [session.event_id, session.id, badge.student_id, badge.badge_id, user.id, parsed.data.source, parsed.data.deviceTime ?? null]);
+      return { status: 409, body: { result: "usage_exhausted", message: "La credencial ya no tiene usos disponibles", student: { name: badge.name, enrollment: badge.enrollment, program: badge.program }, session: session.name, credential: { reusable: false, maxUses: access.credential_use_limit, usesConsumed, remainingUses: 0 } } };
     }
 
     const attendance = await client.query<{ id: string }>(`INSERT INTO attendances
@@ -74,7 +114,13 @@ export async function POST(request: Request) {
         result: accepted ? "accepted" : "duplicate",
         message: accepted ? "Asistencia registrada" : "Este alumno ya tenía asistencia",
         student: { name: badge.name, enrollment: badge.enrollment, program: badge.program },
-        session: session.name
+        session: session.name,
+        credential: {
+          reusable: access.credential_use_limit === null,
+          maxUses: access.credential_use_limit,
+          usesConsumed: usesConsumed + (accepted && session.consumes_credential_use ? 1 : 0),
+          remainingUses: access.credential_use_limit === null ? null : Math.max(0, access.credential_use_limit - usesConsumed - (accepted && session.consumes_credential_use ? 1 : 0))
+        }
       }
     };
   });

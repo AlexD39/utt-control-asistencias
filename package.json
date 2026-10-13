@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start",
     "check": "tsc --noEmit",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.mjs",
     "test:roles": "node scripts/test-role-access.mjs",
     "test:nfc": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/web-nfc.test.mjs",
     "test:nfc:integration": "node scripts/test-nfc-flow.mjs",
+    "test:access:integration": "node scripts/test-access-flow.mjs",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres"

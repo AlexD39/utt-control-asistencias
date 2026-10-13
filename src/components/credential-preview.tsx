@@ -6,7 +6,7 @@ import { AlertTriangle, Check, CheckCircle2, Clipboard, Nfc, Printer } from "luc
 import { InstitutionBrand } from "@/components/institution-brand";
 import { getNdefReader, nfcErrorMessage, nfcPayload, readCredentialFromNdef } from "@/lib/web-nfc";
 
-type CredentialStudent = { id: string; name: string; enrollment: string; program: string; credential: string };
+type CredentialStudent = { id: string; name: string; enrollment: string; program: string; credential: string; credentialUseLimit?: number | null };
 
 export function CredentialPreview({ student }: { student: CredentialStudent }) {
   const [qr, setQr] = useState("");
@@ -110,6 +110,7 @@ export function CredentialPreview({ student }: { student: CredentialStudent }) {
       <h2>{student.name}</h2>
       <p>{student.program}</p>
       <strong className="credential-enrollment">{student.enrollment}</strong>
+      <span className="credential-policy">{student.credentialUseLimit ? `${student.credentialUseLimit} USOS` : "REUTILIZABLE"}</span>
       {qr && <img className="credential-qr" src={qr} alt={`QR de ${student.name}`} />}
       <code className="credential-code">{student.credential}</code>
       <small className="credential-help">Presenta este código en cada acceso</small>

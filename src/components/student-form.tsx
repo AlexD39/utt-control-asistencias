@@ -5,9 +5,10 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { BadgeCheck, CheckCircle2, UserPlus } from "lucide-react";
 import { CredentialPreview } from "@/components/credential-preview";
 
-type CreatedStudent = { id: string; name: string; enrollment: string; program: string; credential: string };
+type CreatedStudent = { id: string; name: string; enrollment: string; program: string; credential: string; credentialUseLimit: number | null };
+type Workshop = { id: string; code: string; name: string; capacity: number | null; enrolled: number };
 
-export function StudentForm() {
+export function StudentForm({ eventName, workshops }: { eventName?: string; workshops: Workshop[] }) {
   const [student, setStudent] = useState<CreatedStudent | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,7 +26,12 @@ export function StudentForm() {
     const response = await fetch("/api/students", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(Object.fromEntries(form.entries()))
+      body: JSON.stringify({
+        name: form.get("name"), enrollment: form.get("enrollment"), email: form.get("email"), program: form.get("program"),
+        credentialType: form.get("credentialType"),
+        credentialUseLimit: form.get("credentialType") === "limited" ? Number(form.get("credentialUseLimit")) : null,
+        workshopIds: form.getAll("workshopIds")
+      })
     });
     const data = await response.json();
     setLoading(false);
@@ -59,6 +65,12 @@ export function StudentForm() {
       <label>Correo institucional<input name="email" type="email" placeholder="alumno@universidad.edu.mx" /></label>
       <label>Programa o carrera<input name="program" placeholder="Ej. Ingeniería en Sistemas" minLength={2} required /></label>
     </div>
+    <div className="form-section-head compact"><span>02</span><div><h2>Acceso y talleres</h2><p>Configura la credencial para {eventName ?? "el congreso activo"}.</p></div></div>
+    <div className="form-grid credential-policy-grid">
+      <label>Tipo de credencial<select name="credentialType" defaultValue="reusable"><option value="reusable">Reutilizable</option><option value="limited">Usos limitados</option></select></label>
+      <label>Máximo de usos<input name="credentialUseLimit" type="number" min="1" max="1000" defaultValue="1" /><small>Sólo se aplica al elegir usos limitados.</small></label>
+    </div>
+    <fieldset className="workshop-options"><legend>Talleres asignados</legend>{workshops.length ? workshops.map((workshop) => <label className="selection-item" key={workshop.id}><input type="checkbox" name="workshopIds" value={workshop.id} disabled={workshop.capacity !== null && workshop.enrolled >= workshop.capacity} /><span><strong>{workshop.name}</strong><small>{workshop.code}{workshop.capacity ? ` · ${workshop.enrolled}/${workshop.capacity} lugares` : " · Sin límite de cupo"}</small></span></label>) : <p>No hay talleres activos disponibles.</p>}</fieldset>
     <div className="auto-credential"><span><BadgeCheck aria-hidden /></span><div><strong>Credencial automática</strong><p>Al guardar se generará un token seguro, el código QR y la vista previa lista para imprimir.</p></div></div>
     {error && <div className="alert alert-error" role="alert">{error}</div>}
     <div className="form-actions"><Link href="/students" className="button button-secondary">Cancelar</Link><button className="button button-primary" disabled={loading}><UserPlus aria-hidden />{loading ? "Generando…" : "Registrar y generar credencial"}</button></div>

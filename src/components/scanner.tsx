@@ -5,7 +5,13 @@ import { AlertTriangle, CheckCircle2, CircleX, Nfc, ScanLine } from "lucide-reac
 import { getNdefReader, nfcErrorMessage, readCredentialFromNdef } from "@/lib/web-nfc";
 
 type Session = { id: string; name: string; room: string; starts_at: string };
-type ScanResponse = { result: string; message: string; student?: { name: string; enrollment: string; program: string }; session?: string };
+type ScanResponse = {
+  result: string;
+  message: string;
+  student?: { name: string; enrollment: string; program: string };
+  session?: string;
+  credential?: { reusable: boolean; maxUses: number | null; usesConsumed: number; remainingUses: number | null };
+};
 
 export function Scanner() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -196,7 +202,11 @@ export function Scanner() {
   const resultHelp = result?.result === "accepted"
     ? "La asistencia se guardó correctamente. Puedes continuar con el siguiente alumno."
     : result?.result === "duplicate"
-      ? "No se creó un registro adicional para esta sesión."
+      ? "La credencial sigue siendo válida y no se consumió otro uso."
+      : result?.result === "not_enrolled"
+        ? "Asigna al alumno desde el taller antes de permitir el acceso."
+        : result?.result === "usage_exhausted"
+          ? "Puedes ampliar el límite desde el expediente del alumno."
       : "Revisa el código e inténtalo nuevamente.";
 
   return <div className="scanner-layout">
@@ -211,7 +221,7 @@ export function Scanner() {
       <div className="demo-codes">{demoCodes.length > 0 ? demoCodes.map((demo) => <button type="button" key={demo} onClick={() => setCode(demo)}>{demo}</button>) : <small>No hay códigos demo vigentes.</small>}</div>
     </section>
     <section ref={resultRef} className={`scan-result ${result ? resultClass : "idle"}`} aria-live="polite">
-      {!result ? <><span className="result-icon"><ScanLine aria-hidden /></span><h2>Listo para escanear</h2><p>Selecciona una sesión y usa la cámara para comenzar.</p></> : <><span className="result-icon">{resultClass === "success" ? <CheckCircle2 aria-hidden /> : resultClass === "warning" ? <AlertTriangle aria-hidden /> : <CircleX aria-hidden />}</span><p className="eyebrow">{result.result === "accepted" ? "ASISTENCIA GUARDADA" : result.result === "duplicate" ? "REGISTRO DUPLICADO" : "NO SE PUDO REGISTRAR"}</p><h2>{resultTitle}</h2><p className="result-help">{resultHelp}</p>{result.student && <div className="student-result"><strong>{result.student.name}</strong><span>{result.student.enrollment} · {result.student.program}</span>{result.session && <span>{result.session}</span>}</div>}{(result.result === "accepted" || result.result === "duplicate") && <button type="button" className="button result-next" onClick={scanNext}><ScanLine aria-hidden />Escanear siguiente</button>}</>}
+      {!result ? <><span className="result-icon"><ScanLine aria-hidden /></span><h2>Listo para escanear</h2><p>Selecciona una actividad y usa la cámara para comenzar.</p></> : <><span className="result-icon">{resultClass === "success" ? <CheckCircle2 aria-hidden /> : resultClass === "warning" ? <AlertTriangle aria-hidden /> : <CircleX aria-hidden />}</span><p className="eyebrow">{result.result === "accepted" ? "ASISTENCIA GUARDADA" : result.result === "duplicate" ? "ACCESO RECONOCIDO" : "ACCESO NO AUTORIZADO"}</p><h2>{resultTitle}</h2><p className="result-help">{resultHelp}</p>{result.student && <div className="student-result"><strong>{result.student.name}</strong><span>{result.student.enrollment} · {result.student.program}</span>{result.session && <span>{result.session}</span>}{result.credential && <span className="credential-remaining">{result.credential.reusable ? "Credencial reutilizable" : `${result.credential.remainingUses} de ${result.credential.maxUses} usos disponibles`}</span>}</div>}<button type="button" className="button result-next" onClick={scanNext}><ScanLine aria-hidden />Escanear siguiente</button></>}
     </section>
   </div>;
 }

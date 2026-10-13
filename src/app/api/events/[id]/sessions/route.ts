@@ -18,9 +18,20 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (new Date(parsed.data.startsAt) < event.rows[0].starts_at || new Date(parsed.data.endsAt) > event.rows[0].ends_at) {
     return NextResponse.json({ error: "La sesión debe quedar dentro de las fechas del congreso" }, { status: 400 });
   }
-  const result = await query<{ id: string }>(
-    "INSERT INTO sessions (event_id, name, room, starts_at, ends_at, active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-    [eventId, parsed.data.name, parsed.data.room, parsed.data.startsAt, parsed.data.endsAt, parsed.data.active]
-  );
-  return NextResponse.json(result.rows[0], { status: 201 });
+  try {
+    const result = await query<{ id: string }>(
+      `INSERT INTO sessions (event_id, code, name, room, starts_at, ends_at, session_type, capacity,
+        requires_enrollment, consumes_credential_use, active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+      [eventId, parsed.data.code, parsed.data.name, parsed.data.room, parsed.data.startsAt, parsed.data.endsAt,
+        parsed.data.sessionType, parsed.data.capacity, parsed.data.requiresEnrollment,
+        parsed.data.consumesCredentialUse, parsed.data.active]
+    );
+    return NextResponse.json(result.rows[0], { status: 201 });
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") {
+      return NextResponse.json({ error: "La clave ya pertenece a otra actividad del congreso" }, { status: 409 });
+    }
+    return NextResponse.json({ error: "No fue posible crear la actividad" }, { status: 500 });
+  }
 }

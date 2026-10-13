@@ -12,6 +12,8 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     const attendance = await client.query("SELECT 1 FROM attendances WHERE event_id = $1 AND student_id = $2 LIMIT 1", [eventId, studentId]);
     if (attendance.rows[0]) return "IN_USE";
     await client.query("UPDATE badges SET active = FALSE, revoked_at = NOW() WHERE event_id = $1 AND student_id = $2 AND active", [eventId, studentId]);
+    await client.query(`DELETE FROM session_students ss USING sessions se
+      WHERE ss.session_id = se.id AND se.event_id = $1 AND ss.student_id = $2`, [eventId, studentId]);
     const removed = await client.query("DELETE FROM event_students WHERE event_id = $1 AND student_id = $2", [eventId, studentId]);
     return removed.rowCount === 1 ? "REMOVED" : "NOT_FOUND";
   });

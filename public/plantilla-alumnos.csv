@@ -1,2 +1,3 @@
-Matrícula,Nombre,Correo,Programa
-A20260001,Ana Martínez López,ana@universidad.edu.mx,Ingeniería en Sistemas
+Matrícula,Nombre,Correo,Programa,Talleres,TipoCredencial,Usos
+A20260001,Ana Martínez López,ana@universidad.edu.mx,Ingeniería en Sistemas,IA-01|ROB-02,reutilizable,
+A20260002,Diego Hernández Ruiz,diego@universidad.edu.mx,Administración,MKT-01,limitada,2

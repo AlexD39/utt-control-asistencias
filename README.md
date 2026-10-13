@@ -31,6 +31,10 @@ En desarrollo activo. Actualmente incluye administración de alumnos, credencial
 - CRUD de usuarios con roles, activación, eliminación segura y restablecimiento de contraseña.
 - Invalidación inmediata de sesiones pertenecientes a usuarios desactivados o eliminados.
 - Registro de asistencias por NFC, QR o captura manual.
+- Credenciales reutilizables o limitadas por número de actividades.
+- Talleres con clave, cupo, inscripción previa y consumo configurable de credencial.
+- Asignación de alumnos desde el taller o desde su expediente.
+- Confirmación móvil con nombre, matrícula, programa, actividad y usos restantes.
 
 ## Roles y permisos
 
@@ -89,7 +93,9 @@ No bloquear permanentemente el chip durante el piloto. Si `adb devices` muestra 
 
 ## Importar alumnos
 
-Desde **Alumnos → Importar CSV** se puede cargar un máximo de 5,000 filas o 2 MB por archivo. Las columnas requeridas son `Matrícula`, `Nombre` y `Programa`; `Correo` es opcional. También se aceptan sus equivalentes en inglés: `enrollment`, `name`, `program` y `email`.
+Desde **Alumnos → Importar CSV** se puede cargar un máximo de 5,000 filas o 2 MB por archivo. Las columnas requeridas son `Matrícula`, `Nombre` y `Programa`; `Correo`, `Talleres`, `TipoCredencial` y `Usos` son opcionales. También se aceptan sus equivalentes en inglés.
+
+En `Talleres` se utilizan las claves configuradas en el congreso, separadas con `|`. `TipoCredencial` acepta `reutilizable` o `limitada`; cuando es limitada, `Usos` debe contener un entero entre 1 y 1,000. Una importación agrega las inscripciones indicadas sin retirar talleres anteriores y se revierte completa si contiene una clave inexistente, un cupo insuficiente o datos inválidos.
 
 Si una matrícula ya existe, sus datos se actualizan y el alumno se reactiva. Si no existe, se crea y queda listo para generar su credencial. Desde el detalle de un congreso, la importación asigna todas las filas directamente a ese evento. La plantilla está disponible en `public/plantilla-alumnos.csv` y desde la propia pantalla de importación.
 
@@ -116,6 +122,7 @@ Si el proyecto ya utilizaba un volumen de PostgreSQL anterior, aplicar las migra
 ~~~powershell
 Get-Content database/migrations/003_nfc_status.sql | docker exec -i congreso_nfc_db psql -U congreso -d congreso_nfc
 Get-Content database/migrations/004_default_event_access.sql | docker exec -i congreso_nfc_db psql -U congreso -d congreso_nfc
+Get-Content database/migrations/005_workshops_and_credential_limits.sql | docker exec -i congreso_nfc_db psql -U congreso -d congreso_nfc
 ~~~
 
 ## Configuración
@@ -135,9 +142,11 @@ Las variables locales nunca deben subirse al repositorio. Para producción se de
 | npm run dev | Inicia el servidor de desarrollo |
 | npm run build | Genera y valida la compilación de producción |
 | npm run check | Comprueba los tipos de TypeScript |
+| npm test | Ejecuta las pruebas unitarias de CSV y Web NFC |
 | npm run test:roles | Recorre las rutas y permisos de los cuatro roles; requiere el servidor encendido |
 | npm run test:nfc | Simula payloads, lectura NDEF y errores de Web NFC sin hardware |
 | npm run test:nfc:integration | Simula una lectura NFC completa contra la API local; requiere el servidor encendido |
+| npm run test:access:integration | Valida talleres restringidos, límites, duplicados e importación CSV contra la API local |
 | npm run db:up | Levanta PostgreSQL |
 | npm run db:down | Detiene PostgreSQL |
 | npm run db:logs | Muestra los registros de PostgreSQL |

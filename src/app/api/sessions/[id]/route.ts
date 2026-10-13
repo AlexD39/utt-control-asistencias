@@ -21,10 +21,25 @@ export async function PATCH(request: Request, context: Context) {
   if (new Date(parsed.data.startsAt) < current.rows[0].starts_at || new Date(parsed.data.endsAt) > current.rows[0].ends_at) {
     return NextResponse.json({ error: "La sesión debe quedar dentro de las fechas del congreso" }, { status: 400 });
   }
-  await query("UPDATE sessions SET name = $1, room = $2, starts_at = $3, ends_at = $4, active = $5 WHERE id = $6", [
-    parsed.data.name, parsed.data.room, parsed.data.startsAt, parsed.data.endsAt, parsed.data.active, id
-  ]);
-  return NextResponse.json({ ok: true });
+  if (parsed.data.capacity !== null) {
+    const enrolled = await query<{ total: number }>("SELECT COUNT(*)::int total FROM session_students WHERE session_id = $1", [id]);
+    if ((enrolled.rows[0]?.total ?? 0) > parsed.data.capacity) {
+      return NextResponse.json({ error: "El cupo no puede ser menor al número de alumnos ya inscritos" }, { status: 409 });
+    }
+  }
+  try {
+    await query(`UPDATE sessions SET code = $1, name = $2, room = $3, starts_at = $4, ends_at = $5,
+      session_type = $6, capacity = $7, requires_enrollment = $8, consumes_credential_use = $9, active = $10
+      WHERE id = $11`, [parsed.data.code, parsed.data.name, parsed.data.room, parsed.data.startsAt,
+      parsed.data.endsAt, parsed.data.sessionType, parsed.data.capacity, parsed.data.requiresEnrollment,
+      parsed.data.consumesCredentialUse, parsed.data.active, id]);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") {
+      return NextResponse.json({ error: "La clave ya pertenece a otra actividad del congreso" }, { status: 409 });
+    }
+    return NextResponse.json({ error: "No fue posible actualizar la actividad" }, { status: 500 });
+  }
 }
 
 export async function DELETE(_request: Request, context: Context) {
