@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Users } from "lucide-react";
 import { formatDate } from "@/lib/format";
+import { Modal } from "@/components/modal";
 
 export type SessionData = {
   id: string; code: string; name: string; room: string; startsAt: string; endsAt: string; active: boolean;
@@ -96,8 +97,7 @@ export function SessionManager({ eventId, eventStartsAt, eventEndsAt, sessions, 
 
   return <section className="session-section">
     <div className="section-heading"><div><p className="eyebrow">AGENDA Y TALLERES</p><h2>Actividades del congreso</h2><p>Configura talleres, cupos, inscripciones y consumo de la credencial.</p></div><button className="button button-primary" onClick={() => { setEditing("new"); setAssigning(null); setError(""); }}><Plus aria-hidden />Nueva actividad</button></div>
-    {formSession && <form key={editing} className="card entity-form session-form" onSubmit={save}>
-      <div className="card-head"><h2>{selected ? "Editar actividad" : "Nueva actividad"}</h2></div>
+    <Modal open={Boolean(formSession)} title={selected ? "Editar actividad" : "Nueva actividad"} description="Configura horario, cupo y reglas de acceso." onClose={() => !loading && setEditing(null)} wide>{formSession && <form key={editing} className="entity-form session-form" onSubmit={save}>
       <div className="form-grid">
         <label>Clave<input name="code" defaultValue={formSession.code} placeholder="Ej. IA-01" required /></label>
         <label>Tipo<select name="sessionType" defaultValue={formSession.sessionType}><option value="workshop">Taller</option><option value="general">Sesión general</option><option value="access">Acceso</option></select></label>
@@ -114,14 +114,13 @@ export function SessionManager({ eventId, eventStartsAt, eventEndsAt, sessions, 
       </div>
       {error && <div className="alert alert-error">{error}</div>}
       <div className="form-actions"><button type="button" className="button button-secondary" onClick={() => setEditing(null)}>Cancelar</button><button className="button button-primary" disabled={loading}>{loading ? "Guardando…" : "Guardar actividad"}</button></div>
-    </form>}
-    {assignmentSession && <div className="card workshop-assignment">
-      <div className="card-head"><div><h2>Alumnos de {assignmentSession.name}</h2><p>{selectedStudents.length}{assignmentSession.capacity ? ` de ${assignmentSession.capacity}` : ""} inscritos</p></div></div>
+    </form>}</Modal>
+    <Modal open={Boolean(assignmentSession)} title={assignmentSession ? `Alumnos de ${assignmentSession.name}` : "Alumnos del taller"} description={assignmentSession ? `${selectedStudents.length}${assignmentSession.capacity ? ` de ${assignmentSession.capacity}` : ""} inscritos` : undefined} onClose={() => !loading && setAssigning(null)} wide>{assignmentSession && <div className="workshop-assignment">
       <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por nombre, matrícula o carrera" />
       <div className="selection-list workshop-selection">{filteredStudents.map((student) => <label className="selection-item" key={student.id}><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudent(student.id)} /><span><strong>{student.name}</strong><small>{student.enrollment} · {student.program}</small></span></label>)}</div>
       {error && <div className="alert alert-error">{error}</div>}
       <div className="form-actions"><button className="button button-secondary" onClick={() => setAssigning(null)}>Cancelar</button><button className="button button-primary" onClick={saveAssignments} disabled={loading}>{loading ? "Guardando…" : "Guardar inscripciones"}</button></div>
-    </div>}
+    </div>}</Modal>
     {!formSession && !assignmentSession && error && <div className="alert alert-error">{error}</div>}
     <div className="session-grid">{sessions.map((session) => <article className="card session-card" key={session.id}>
       <div><div className="session-badges"><span className={session.active ? "pill pill-success" : "pill"}>{session.active ? "DISPONIBLE" : "INACTIVA"}</span><span className="pill">{session.sessionType === "workshop" ? "TALLER" : session.sessionType === "access" ? "ACCESO" : "GENERAL"}</span></div><h3>{session.name}</h3><p><strong>{session.code}</strong> · {session.room}</p><small>{formatDate(session.startsAt)} – {formatDate(session.endsAt)}</small><div className="session-meta"><span>{session.studentIds.length}{session.capacity ? `/${session.capacity}` : ""} inscritos</span><span>{session.requiresEnrollment ? "Inscripción obligatoria" : "Acceso abierto"}</span><span>{session.consumesCredentialUse ? "Consume uso" : "No consume uso"}</span></div></div>

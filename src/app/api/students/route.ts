@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
 import { generateBadgeCode } from "@/lib/badges";
+import { sealCredential } from "@/lib/credential-crypto";
 import { transaction } from "@/lib/db";
 
 const schema = z.object({
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
 
   try {
     const credential = generateBadgeCode();
+    const sealed = sealCredential(credential);
     const result = await transaction(async (client) => {
       const event = await client.query<{ id: string }>(`SELECT e.id FROM events e WHERE e.status = 'active' AND ($1::boolean OR EXISTS (
         SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $2
@@ -53,9 +55,9 @@ export async function POST(request: Request) {
         }
         await client.query("INSERT INTO session_students (session_id, student_id) SELECT UNNEST($1::uuid[]), $2", [workshopIds, created.id]);
       }
-      await client.query(`INSERT INTO badges (event_id, student_id, token_hash, label)
-        VALUES ($1, $2, encode(digest($3, 'sha256'), 'hex'), $4)`,
-        [event.rows[0].id, created.id, credential, `Credencial ${created.enrollment}`]);
+      await client.query(`INSERT INTO badges (event_id, student_id, token_hash, token_ciphertext, token_iv, token_tag, label)
+        VALUES ($1, $2, encode(digest($3, 'sha256'), 'hex'), $4, $5, $6, $7)`,
+        [event.rows[0].id, created.id, credential, sealed.ciphertext, sealed.iv, sealed.tag, `Credencial ${created.enrollment}`]);
       return { ...created, credential, credentialUseLimit: useLimit };
     });
     return NextResponse.json({ student: result }, { status: 201 });

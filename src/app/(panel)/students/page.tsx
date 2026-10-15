@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, Download, Plus, Upload } from "lucide-react";
+import { ArrowRight, Download, Upload } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { initials } from "@/lib/format";
 import { buildStudentWhere, normalizeStudentFilters } from "@/lib/student-query";
+import { StudentRegistrationLauncher } from "@/components/student-registration-launcher";
+import { CredentialEmailManager } from "@/components/credential-email-manager";
 
 type Student = {
   id: string;
@@ -23,6 +25,14 @@ export default async function StudentsPage({
 }) {
   const user = await requireUser(["super_admin", "event_admin", "viewer"]);
   const canManage = user.role === "super_admin" || user.role === "event_admin";
+  const activeEventResult = canManage ? await query<{ id: string; name: string }>(`SELECT e.id, e.name FROM events e
+    WHERE e.status = 'active' AND ($1::boolean OR EXISTS (SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $2))
+    ORDER BY e.starts_at DESC LIMIT 1`, [user.role === "super_admin", user.id]) : { rows: [] };
+  const activeEvent = activeEventResult.rows[0];
+  const workshopsResult = activeEvent ? await query<{ id: string; code: string; name: string; capacity: number | null; enrolled: number }>(`SELECT s.id, s.code, s.name, s.capacity, COUNT(ss.student_id)::int enrolled
+    FROM sessions s LEFT JOIN session_students ss ON ss.session_id = s.id
+    WHERE s.event_id = $1 AND s.session_type = 'workshop' AND s.active
+    GROUP BY s.id ORDER BY s.starts_at`, [activeEvent.id]) : { rows: [] };
   const rawFilters = await searchParams;
   const filters = normalizeStudentFilters(rawFilters);
   const where = buildStudentWhere(filters);
@@ -46,7 +56,7 @@ export default async function StudentsPage({
       <div className="heading-actions">
         <a className="button button-secondary" href={exportUrl}><Download aria-hidden />Exportar CSV</a>
         {canManage && <Link className="button button-secondary" href="/students/import"><Upload aria-hidden />Importar CSV</Link>}
-        {canManage && <Link className="button button-primary" href="/students/new"><Plus aria-hidden />Registrar alumno</Link>}
+        {canManage && <StudentRegistrationLauncher eventName={activeEvent?.name} workshops={workshopsResult.rows} />}
       </div>
     </div>
     <form className="student-filters card" method="get">
@@ -57,6 +67,7 @@ export default async function StudentsPage({
       <button className="button button-primary">Aplicar</button>
       <Link href="/students" className="button button-secondary">Limpiar</Link>
     </form>
+    {canManage && activeEvent && <CredentialEmailManager />}
     <section className="card table-card">
       <div className="table-wrap"><table><thead><tr><th>Participante</th><th>Programa</th><th>Credencial</th><th>Estado</th><th></th></tr></thead><tbody>
         {studentsResult.rows.length === 0 ? <tr><td colSpan={5} className="empty-cell">No se encontraron alumnos con estos filtros.</td></tr> : studentsResult.rows.map((row) => <tr key={row.id}>

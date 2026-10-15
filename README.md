@@ -35,6 +35,9 @@ En desarrollo activo. Actualmente incluye administración de alumnos, credencial
 - Talleres con clave, cupo, inscripción previa y consumo configurable de credencial.
 - Asignación de alumnos desde el taller o desde su expediente.
 - Confirmación móvil con nombre, matrícula, programa, actividad y usos restantes.
+- Cola de credenciales por correo con cifrado AES-256-GCM, reintentos y seguimiento de estado.
+- Integración preparada exclusivamente para Resend, sin claves almacenadas en el repositorio.
+- Formularios administrativos en modales responsivos y acciones de usuarios mediante iconos accesibles.
 
 ## Roles y permisos
 
@@ -123,6 +126,7 @@ Si el proyecto ya utilizaba un volumen de PostgreSQL anterior, aplicar las migra
 Get-Content database/migrations/003_nfc_status.sql | docker exec -i congreso_nfc_db psql -U congreso -d congreso_nfc
 Get-Content database/migrations/004_default_event_access.sql | docker exec -i congreso_nfc_db psql -U congreso -d congreso_nfc
 Get-Content database/migrations/005_workshops_and_credential_limits.sql | docker exec -i congreso_nfc_db psql -U congreso -d congreso_nfc
+Get-Content database/migrations/006_credential_email_queue.sql | docker exec -i congreso_nfc_db psql -U congreso -d congreso_nfc
 ~~~
 
 ## Configuración
@@ -134,6 +138,23 @@ Copy-Item .env.example .env.local
 ~~~
 
 Las variables locales nunca deben subirse al repositorio. Para producción se deben reemplazar la contraseña de PostgreSQL y la clave JWT.
+
+### Correo con Resend
+
+La aplicación utiliza una cola propia en PostgreSQL y Resend como único proveedor. Preparar un lote no envía los mensajes inmediatamente: primero crea entregas pendientes y después el trabajador procesa una por petición. Esto permite reintentar errores sin duplicar los correos aceptados por Resend.
+
+En el VPS se deben configurar estas variables:
+
+| Variable | Uso |
+|---|---|
+| `RESEND_API_KEY` | Clave API creada en Resend. |
+| `EMAIL_FROM` | Remitente verificado, por ejemplo `Credenciales UTT <credenciales@dominio.edu.mx>`. |
+| `CREDENTIAL_ENCRYPTION_KEY` | Clave aleatoria de 32 bytes en base64 para cifrar los tokens recuperables. |
+| `EMAIL_WORKER_KEY` | Secreto para autorizar al trabajador o tarea programada. |
+
+Antes de habilitar los envíos se debe verificar en Resend un dominio o subdominio y publicar sus registros SPF y DKIM. Las credenciales emitidas antes de la migración 006 conservan su seguridad, pero necesitan reemitirse una vez para disponer del token cifrado que genera el QR del correo.
+
+El panel **Alumnos → Envío masivo** permite preparar la cola y procesarla manualmente. En producción, el VPS podrá llamar periódicamente a `POST /api/credential-emails/process` enviando `x-email-worker-key` con el valor de `EMAIL_WORKER_KEY`. Cada llamada procesa como máximo una entrega, por lo que puede ejecutarse con una frecuencia controlada y sin ráfagas.
 
 ## Comandos
 
@@ -147,6 +168,8 @@ Las variables locales nunca deben subirse al repositorio. Para producción se de
 | npm run test:nfc | Simula payloads, lectura NDEF y errores de Web NFC sin hardware |
 | npm run test:nfc:integration | Simula una lectura NFC completa contra la API local; requiere el servidor encendido |
 | npm run test:access:integration | Valida talleres restringidos, límites, duplicados e importación CSV contra la API local |
+| npm run test:email:integration | Valida localmente el cifrado y la creación de una entrega sin enviar un correo real |
+| npm run test:e2e | Recorre en Chromium los modales principales y el centro de envíos |
 | npm run db:up | Levanta PostgreSQL |
 | npm run db:down | Detiene PostgreSQL |
 | npm run db:logs | Muestra los registros de PostgreSQL |

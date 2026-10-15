@@ -29,6 +29,6 @@ export default async function EventsPage() {
       <div className="event-card-metrics"><span><strong>{event.sessions}</strong> sesiones</span><span><strong>{event.students}</strong> alumnos</span><span><strong>{event.attendances}</strong> asistencias</span><b className="inline-link">{canManage ? "Administrar" : "Ver detalle"}<ArrowRight aria-hidden /></b></div>
     </Link>)}</div>
     {events.rows.length === 0 && <div className="card empty"><strong>No hay congresos registrados</strong></div>}
-    {canManage && <div className="create-event-section"><p className="eyebrow">CREAR</p><EventForm /></div>}
+    {canManage && <EventForm />}
   </>;
 }
