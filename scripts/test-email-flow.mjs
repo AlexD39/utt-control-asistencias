@@ -14,7 +14,7 @@ function readEnv(path) {
 
 const env = readEnv(new URL("../.env.local", import.meta.url));
 Object.assign(process.env, env);
-const baseUrl = process.env.DEMO_BASE_URL ?? "http://localhost:3000";
+const baseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
 const database = new Client({ connectionString: env.DATABASE_URL });
 const suffix = Date.now().toString().slice(-8);
 let studentId;

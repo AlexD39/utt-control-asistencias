@@ -35,7 +35,7 @@ export default function LoginPage() {
           <h1>Cada llegada,<br />bien registrada.</h1>
           <p className="lead">Asistencia rápida y verificable para eventos universitarios, incluso cuando la conexión no coopera.</p>
         </div>
-        <p className="login-foot">Universidad Tecnológica de Tehuacán · Entorno local</p>
+        <p className="login-foot">Universidad Tecnológica de Tehuacán · Control de acceso</p>
       </section>
       <section className="login-panel">
         <form className="login-card" onSubmit={submit}>
@@ -44,11 +44,10 @@ export default function LoginPage() {
             <h2>Inicia sesión</h2>
             <p>Accede con la cuenta asignada por la coordinación.</p>
           </div>
-          <label>Correo electrónico<input name="email" type="email" defaultValue="admin@congreso.local" required /></label>
-          <label>Contraseña<input name="password" type="password" defaultValue="Admin123!" required /></label>
+          <label>Correo electrónico<input name="email" type="email" autoComplete="username" required /></label>
+          <label>Contraseña<input name="password" type="password" autoComplete="current-password" required /></label>
           {error && <div className="alert alert-error">{error}</div>}
           <button className="button button-primary" disabled={loading}>{loading ? "Ingresando…" : "Ingresar al sistema"}</button>
-          <div className="demo-note"><strong>Cuenta de demostración</strong><br />admin@congreso.local · Admin123!</div>
         </form>
       </section>
     </main>

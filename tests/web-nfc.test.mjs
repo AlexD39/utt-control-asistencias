@@ -14,11 +14,11 @@ function ndefRecord(value, recordType = "text") {
 }
 
 test("genera el payload UTT sin espacios accidentales", () => {
-  assert.equal(nfcPayload("  DEMO-ANA-7K2P  "), `${NFC_PAYLOAD_PREFIX}DEMO-ANA-7K2P`);
+  assert.equal(nfcPayload("  UTT-TEST-7K2P  "), `${NFC_PAYLOAD_PREFIX}UTT-TEST-7K2P`);
 });
 
 test("simula escritura y lectura NDEF de una credencial", () => {
-  const credential = "DEMO-ANA-7K2P";
+  const credential = "UTT-TEST-7K2P";
   const event = { message: { records: [ndefRecord(nfcPayload(credential))] } };
   assert.equal(readCredentialFromNdef(event), credential);
 });
@@ -30,8 +30,8 @@ test("conserva correctamente caracteres UTF-8", () => {
 });
 
 test("acepta una credencial NDEF heredada sin prefijo", () => {
-  const event = { message: { records: [ndefRecord("DEMO-DIEGO-8M4Q", "url")] } };
-  assert.equal(readCredentialFromNdef(event), "DEMO-DIEGO-8M4Q");
+  const event = { message: { records: [ndefRecord("UTT-TEST-8M4Q", "url")] } };
+  assert.equal(readCredentialFromNdef(event), "UTT-TEST-8M4Q");
 });
 
 test("ignora registros NFC no compatibles", () => {

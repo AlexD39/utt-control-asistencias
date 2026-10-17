@@ -17,7 +17,6 @@ export function Scanner() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionId, setSessionId] = useState("");
   const [code, setCode] = useState("");
-  const [demoCodes, setDemoCodes] = useState<string[]>([]);
   const [result, setResult] = useState<ScanResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [camera, setCamera] = useState(false);
@@ -33,20 +32,12 @@ export function Scanner() {
   const processingRef = useRef(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/sessions").then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "No fue posible consultar las sesiones.");
-        return data;
-      }),
-      fetch("/api/demo-badges").then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "No fue posible consultar las credenciales.");
-        return data;
-      })
-    ]).then(([sessionData, demoData]) => {
+    fetch("/api/sessions").then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No fue posible consultar las sesiones.");
+      return data;
+    }).then((sessionData) => {
       setSessions(sessionData.sessions ?? []);
-      setDemoCodes(demoData.codes ?? []);
       if (sessionData.sessions?.[0]) setSessionId(sessionData.sessions[0].id);
       if (!sessionData.sessions?.length) {
         setSessionError("Tu cuenta no tiene sesiones disponibles. Pide a Superadministración que te asigne al congreso activo.");
@@ -216,9 +207,8 @@ export function Scanner() {
       {sessionError && <div className="alert alert-error" role="alert">{sessionError}</div>}
       {camera ? <div className="camera-box"><video ref={videoRef} muted playsInline /><div className="camera-frame"><span>Coloca el QR dentro del recuadro</span></div><button onClick={stopCamera} className="button button-ghost">Cancelar cámara</button></div> : <button className="camera-trigger" onClick={startCamera} disabled={!sessionId || loading}><span><ScanLine aria-hidden /></span><strong>Escanear código QR</strong><small>Abre la cámara posterior</small></button>}
       <div className="scan-methods"><button className={nfcListening ? "button button-primary" : "button button-secondary"} onClick={nfcListening ? stopNfc : startNfc} disabled={!sessionId}><Nfc aria-hidden />{nfcListening ? "Detener lector NFC" : "Usar chip NFC"}</button><span>{nfcMessage || "Opción disponible en teléfonos Android compatibles con NFC."}</span></div>
-      <div className="divider"><span>o captura un código de prueba</span></div>
+      <div className="divider"><span>o captura el código manualmente</span></div>
       <form onSubmit={submit} className="manual-form"><input value={code} onChange={(event) => setCode(event.target.value)} placeholder="Código del gafete" autoComplete="off" /><button className="button button-primary" disabled={loading || !sessionId}>{loading ? "Validando…" : "Registrar"}</button></form>
-      <div className="demo-codes">{demoCodes.length > 0 ? demoCodes.map((demo) => <button type="button" key={demo} onClick={() => setCode(demo)}>{demo}</button>) : <small>No hay códigos demo vigentes.</small>}</div>
     </section>
     <section ref={resultRef} className={`scan-result ${result ? resultClass : "idle"}`} aria-live="polite">
       {!result ? <><span className="result-icon"><ScanLine aria-hidden /></span><h2>Listo para escanear</h2><p>Selecciona una actividad y usa la cámara para comenzar.</p></> : <><span className="result-icon">{resultClass === "success" ? <CheckCircle2 aria-hidden /> : resultClass === "warning" ? <AlertTriangle aria-hidden /> : <CircleX aria-hidden />}</span><p className="eyebrow">{result.result === "accepted" ? "ASISTENCIA GUARDADA" : result.result === "duplicate" ? "ACCESO RECONOCIDO" : "ACCESO NO AUTORIZADO"}</p><h2>{resultTitle}</h2><p className="result-help">{resultHelp}</p>{result.student && <div className="student-result"><strong>{result.student.name}</strong><span>{result.student.enrollment} · {result.student.program}</span>{result.session && <span>{result.session}</span>}{result.credential && <span className="credential-remaining">{result.credential.reusable ? "Credencial reutilizable" : `${result.credential.remainingUses} de ${result.credential.maxUses} usos disponibles`}</span>}</div>}<button type="button" className="button result-next" onClick={scanNext}><ScanLine aria-hidden />Escanear siguiente</button></>}

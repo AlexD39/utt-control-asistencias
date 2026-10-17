@@ -1,11 +1,48 @@
 import { expect, test } from "@playwright/test";
+import fs from "node:fs";
+import { SignJWT } from "jose";
+import pg from "pg";
+
+const { Client } = pg;
+const env = Object.fromEntries(fs.readFileSync(".env.local", "utf8").split(/\r?\n/)
+  .map((line) => line.trim())
+  .filter((line) => line && !line.startsWith("#") && line.includes("="))
+  .map((line) => {
+    const separator = line.indexOf("=");
+    return [line.slice(0, separator).trim(), line.slice(separator + 1).trim().replace(/^['"]|['"]$/g, "")];
+  }));
+const database = new Client({ connectionString: env.DATABASE_URL });
+const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3101";
+let sessionToken = "";
+let temporaryEventId: string | undefined;
+
+test.beforeAll(async () => {
+  await database.connect();
+  const userResult = await database.query("SELECT id, name, email, role FROM users WHERE role = 'super_admin' AND active ORDER BY created_at LIMIT 1");
+  const user = userResult.rows[0];
+  if (!user) throw new Error("Se necesita un superadministrador activo para ejecutar las pruebas E2E.");
+  sessionToken = await new SignJWT({ name: user.name, email: user.email, role: user.role })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(user.id)
+    .setIssuedAt()
+    .setExpirationTime("30m")
+    .sign(new TextEncoder().encode(env.JWT_SECRET));
+
+  const activeEvent = await database.query("SELECT id FROM events WHERE status = 'active' LIMIT 1");
+  if (!activeEvent.rows[0]) {
+    const created = await database.query(`INSERT INTO events (name, venue, starts_at, ends_at, status)
+      VALUES ('Validación automatizada temporal', 'Entorno de pruebas', NOW() - INTERVAL '1 hour', NOW() + INTERVAL '1 day', 'active') RETURNING id`);
+    temporaryEventId = created.rows[0].id;
+  }
+});
+
+test.afterAll(async () => {
+  if (temporaryEventId) await database.query("DELETE FROM events WHERE id = $1", [temporaryEventId]);
+  await database.end();
+});
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/login");
-  await page.getByLabel("Correo electrónico").fill("admin@congreso.local");
-  await page.getByLabel("Contraseña").fill("Admin123!");
-  await page.getByRole("button", { name: "Ingresar al sistema" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.context().addCookies([{ name: "congreso_session", value: sessionToken, url: baseUrl, httpOnly: true, sameSite: "Lax" }]);
 });
 
 test("abre y cierra el registro simplificado de alumnos", async ({ page }) => {

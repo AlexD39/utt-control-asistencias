@@ -5,8 +5,8 @@ export default defineConfig({
   fullyParallel: false,
   retries: 0,
   reporter: "list",
-  use: { baseURL: "http://localhost:3101", trace: "retain-on-failure" },
-  webServer: {
+  use: { baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3101", trace: "retain-on-failure" },
+  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
     command: "node node_modules/next/dist/bin/next start --port 3101",
     url: "http://localhost:3101/login",
     reuseExistingServer: false,

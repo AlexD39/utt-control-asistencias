@@ -1,12 +1,12 @@
 # UTT Tehuacán — control de asistencia para congresos
 
-Sistema de control de asistencia para el congreso de la Universidad Tecnológica de Tehuacán. El proyecto comienza con un único congreso activo, pero su modelo de datos admite múltiples eventos y sesiones.
+Sistema de control de asistencia para congresos de la Universidad Tecnológica de Tehuacán. Su modelo de datos admite múltiples eventos, actividades y talleres.
 
-La aplicación se desarrolla primero de manera local con React, Next.js y PostgreSQL en Docker. Esta etapa no consume recursos de Firebase.
+La aplicación utiliza React, Next.js y PostgreSQL en Docker.
 
 ## Estado del proyecto
 
-En desarrollo activo. Actualmente incluye administración de alumnos, credenciales QR/NFC, registro de asistencias, control de duplicados y permisos por rol. La validación con chips físicos y el despliegue en producción son los siguientes hitos.
+Versión funcional preparada para despliegue. Incluye administración de alumnos, credenciales QR/NFC, registro de asistencias, control de duplicados, talleres, correo y permisos por rol.
 
 ## Incluido
 
@@ -14,11 +14,10 @@ En desarrollo activo. Actualmente incluye administración de alumnos, credencial
 - Roles super_admin, event_admin, scanner y viewer.
 - Panel de métricas, alumnos, usuarios y asistencias.
 - Escáner QR desde la cámara en navegadores compatibles.
-- Captura manual para desarrollo sin gafetes físicos.
+- Captura manual como respaldo del escaneo QR/NFC.
 - Prevención de duplicados mediante restricción única por alumno y sesión.
 - Bitácora independiente de todos los intentos de lectura.
 - Tokens de gafete almacenados como SHA-256, no como texto visible.
-- Seis alumnos, tres sesiones y cuatro usuarios simulados.
 - Alta individual con generación automática de credencial.
 - Vista previa imprimible, reemisión, escritura y verificación Web NFC.
 - Edición completa de alumnos sin fotografía, búsqueda y filtros.
@@ -83,7 +82,7 @@ Después, abrir `http://localhost:3000` en **Chrome del teléfono**. Esta direcc
 
 Secuencia del ensayo:
 
-1. Iniciar sesión como `admin@congreso.local`.
+1. Iniciar sesión con el superadministrador configurado en Docker.
 2. Abrir **Alumnos**, seleccionar uno y generar o reemitir su credencial.
 3. Pulsar **Configurar chip NFC**, aceptar el permiso y acercar un solo chip.
 4. Pulsar **Verificar chip** y acercar el mismo chip.
@@ -112,6 +111,9 @@ Si una matrícula ya existe, sus datos se actualizan y el alumno se reactiva. Si
 
 ~~~powershell
 npm install
+Copy-Item .env.example .env
+Copy-Item .env.example .env.local
+# Editar ambos archivos y reemplazar todos los valores de ejemplo.
 docker compose up -d postgres
 npm run dev
 ~~~
@@ -131,13 +133,14 @@ Get-Content database/migrations/006_credential_email_queue.sql | docker exec -i 
 
 ## Configuración
 
-Copiar el archivo de ejemplo si no existe una configuración local:
+Docker Compose lee `.env` y Next.js lee `.env.local`. Crear ambos archivos y sustituir todas las claves de ejemplo antes del primer arranque:
 
 ~~~powershell
+Copy-Item .env.example .env
 Copy-Item .env.example .env.local
 ~~~
 
-Las variables locales nunca deben subirse al repositorio. Para producción se deben reemplazar la contraseña de PostgreSQL y la clave JWT.
+Las variables locales nunca deben subirse al repositorio. En una base nueva, Docker crea únicamente el usuario definido mediante `SUPER_ADMIN_NAME`, `SUPER_ADMIN_EMAIL` y `SUPER_ADMIN_PASSWORD`. La contraseña debe tener al menos 12 caracteres, letras y números.
 
 ### Correo con Resend
 
@@ -174,35 +177,65 @@ El panel **Alumnos → Envío masivo** permite preparar la cola y procesarla man
 | npm run db:down | Detiene PostgreSQL |
 | npm run db:logs | Muestra los registros de PostgreSQL |
 
-## Usuarios de demostración
+## Inicializar una base limpia
 
-| Rol | Correo | Contraseña |
-|---|---|---|
-| Superadministración | admin@congreso.local | Admin123! |
-| Administración | coordinador@congreso.local | Admin123! |
-| Registro | registro@congreso.local | Registro123! |
-| Consulta | consulta@congreso.local | Consulta123! |
+En un entorno nuevo, los archivos de `database/init` crean el esquema vacío y un solo superadministrador. No incluyen congresos, alumnos, actividades, credenciales ni usuarios de prueba.
 
-## Gafetes simulados
-
-- DEMO-ANA-7K2P
-- DEMO-DIEGO-8M4Q
-- DEMO-FER-2N9R
-- DEMO-JORGE-5T1X
-- DEMO-VALE-4C6W
-- DEMO-EMI-3B8Z
-
-Capturar dos veces el mismo código en la misma sesión demuestra el control de duplicados. El primer intento crea la asistencia; el segundo únicamente entra en la bitácora.
-
-Las pruebas automatizadas comprueban el contenido NDEF y el registro con origen NFC sin conservar asistencias de prueba. La validación final del campo de radio, permisos del sistema y distancia de lectura requiere un Android compatible con NFC, Chrome, HTTPS y una etiqueta NDEF física.
-
-## Reiniciar los datos simulados
-
-Esta operación elimina el volumen local y vuelve a ejecutar los archivos de database/init.
+Esta operación elimina por completo el volumen local y vuelve a crear una base vacía. No debe ejecutarse sobre una base con información que se necesite conservar:
 
 ~~~powershell
 docker compose down -v
 docker compose up -d postgres
+~~~
+
+## Despliegue en el VPS
+
+La configuración de producción utiliza cinco servicios aislados:
+
+- `caddy`: único servicio público, encargado de HTTPS en los puertos 80 y 443.
+- `app`: servidor Next.js sin puerto público.
+- `postgres`: base de datos sin puerto público.
+- `backup`: respaldo diario en formato PostgreSQL custom con retención de 14 días.
+- `email-worker`: trabajador de Resend desactivado por defecto hasta verificar el dominio.
+
+Mientras no exista un dominio institucional se puede utilizar `167-99-107-119.sslip.io`, que resuelve a la IP del VPS y permite obtener un certificado TLS público. Al adquirir el dominio sólo se cambia `APP_HOST` y se recrea Caddy.
+
+Después de clonar el repositorio en el servidor:
+
+~~~bash
+cd /opt/utt-asistencias
+cp .env.production.example .env.production
+chmod 600 .env.production
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -base64 32
+nano .env.production
+~~~
+
+Los tres valores hexadecimales se utilizan, sin repetirlos, para `POSTGRES_PASSWORD`, `JWT_SECRET` y `EMAIL_WORKER_KEY`. El valor base64 se utiliza para `CREDENTIAL_ENCRYPTION_KEY`. `DATABASE_URL` debe incluir exactamente la misma contraseña hexadecimal de PostgreSQL. No se deben compartir estos valores por chat ni almacenarlos en Git.
+
+Para levantar y revisar el sistema:
+
+~~~bash
+docker compose --env-file .env.production -f compose.production.yml up -d --build
+docker compose --env-file .env.production -f compose.production.yml ps
+docker compose --env-file .env.production -f compose.production.yml logs --tail=100 app caddy postgres backup
+curl -I https://167-99-107-119.sslip.io/login
+~~~
+
+El primer arranque de una base vacía crea exclusivamente el superadministrador definido en `.env.production`. Los respaldos locales se guardan en `backups/`; complementan, pero no sustituyen, los respaldos semanales del proveedor.
+
+Cuando el dominio de Resend esté verificado, completar `RESEND_API_KEY` y `EMAIL_FROM`, y activar únicamente el trabajador de correo:
+
+~~~bash
+docker compose --env-file .env.production -f compose.production.yml --profile email up -d email-worker
+~~~
+
+Para cambiar posteriormente al dominio institucional, actualizar `APP_HOST` y `ACME_EMAIL`, comprobar que el registro DNS apunta al VPS y ejecutar:
+
+~~~bash
+docker compose --env-file .env.production -f compose.production.yml up -d --force-recreate caddy
 ~~~
 
 ## Arquitectura actual
@@ -220,7 +253,7 @@ PostgreSQL 16 en Docker
 ## Estructura
 
 ~~~text
-database/init/        Esquema y datos simulados
+database/init/        Esquema y superadministrador inicial
 public/               Logotipo y recursos públicos
 src/app/              Páginas y API de Next.js
 src/components/       Componentes de la interfaz
@@ -265,4 +298,4 @@ No deben versionarse .env.local, node_modules, .next ni respaldos de la base de 
 
 Proyecto interno de la Universidad Tecnológica de Tehuacán. El logotipo institucional conserva los derechos y lineamientos de la universidad.
 
-Las contraseñas y la clave JWT incluidas son exclusivamente para desarrollo local.
+Las contraseñas, claves y configuración privada se suministran mediante variables de entorno y nunca deben incorporarse al repositorio.
