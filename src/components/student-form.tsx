@@ -17,7 +17,14 @@ export function StudentForm({ eventName, workshops, emailProviderConfigured, onC
   const successRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (student) successRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!student) return;
+    const frame = window.requestAnimationFrame(() => {
+      const success = successRef.current;
+      const modal = success?.closest<HTMLElement>(".modal-surface");
+      if (modal) modal.scrollTo({ top: 0, behavior: "smooth" });
+      else success?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [student]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
