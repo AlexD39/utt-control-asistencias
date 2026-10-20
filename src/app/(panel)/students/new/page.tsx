@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { StudentForm } from "@/components/student-form";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { resendConfiguration } from "@/lib/email-provider";
 
 export default async function NewStudentPage() {
   const user = await requireUser(["super_admin", "event_admin"]);
@@ -15,5 +16,5 @@ export default async function NewStudentPage() {
     FROM sessions s LEFT JOIN session_students ss ON ss.session_id = s.id
     WHERE s.event_id = $1 AND s.session_type = 'workshop' AND s.active
     GROUP BY s.id ORDER BY s.starts_at`, [activeEvent.id]) : { rows: [] };
-  return <><div className="page-heading"><div><p className="eyebrow">PADRÓN / NUEVO</p><h1>Registrar alumno</h1><p>El alta genera una nueva credencial QR y NFC automáticamente.</p></div><Link href="/students" className="button button-secondary"><ArrowLeft aria-hidden />Volver al padrón</Link></div><StudentForm eventName={activeEvent?.name} workshops={workshops.rows} /></>;
+  return <><div className="page-heading"><div><p className="eyebrow">PADRÓN / NUEVO</p><h1>Registrar alumno</h1><p>El alta genera una nueva credencial QR y NFC automáticamente.</p></div><Link href="/students" className="button button-secondary"><ArrowLeft aria-hidden />Volver al padrón</Link></div><StudentForm eventName={activeEvent?.name} workshops={workshops.rows} emailProviderConfigured={resendConfiguration().configured} /></>;
 }

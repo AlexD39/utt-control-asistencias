@@ -35,9 +35,9 @@ export async function POST(request: Request) {
         SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $2
       )) ORDER BY e.starts_at DESC LIMIT 1`, [user.role === "super_admin", user.id]);
       if (!event.rows[0]) throw new Error("NO_ACTIVE_EVENT");
-      const student = await client.query<{ id: string; name: string; enrollment: string; program: string }>(
+      const student = await client.query<{ id: string; name: string; enrollment: string; email: string | null; program: string }>(
         `INSERT INTO students (enrollment, name, email, program) VALUES ($1, $2, $3, $4)
-         RETURNING id, name, enrollment, program`,
+         RETURNING id, name, enrollment, email, program`,
         [parsed.data.enrollment, parsed.data.name, parsed.data.email || null, parsed.data.program]
       );
       const created = student.rows[0];
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       await client.query(`INSERT INTO badges (event_id, student_id, token_hash, token_ciphertext, token_iv, token_tag, label)
         VALUES ($1, $2, encode(digest($3, 'sha256'), 'hex'), $4, $5, $6, $7)`,
         [event.rows[0].id, created.id, credential, sealed.ciphertext, sealed.iv, sealed.tag, `Credencial ${created.enrollment}`]);
-      return { ...created, credential, credentialUseLimit: useLimit };
+      return { ...created, credential, credentialUseLimit: useLimit, workshopCount: workshopIds.length };
     });
     return NextResponse.json({ student: result }, { status: 201 });
   } catch (error) {

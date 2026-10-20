@@ -14,6 +14,9 @@ export async function POST(request: Request) {
   const isWorker = Boolean(workerKey && process.env.EMAIL_WORKER_KEY && workerKey === process.env.EMAIL_WORKER_KEY);
   const user = isWorker ? { role: "worker", id: "worker" } : await getSessionUser();
   if (!user || !["worker", "super_admin", "event_admin"].includes(user.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  const body = await request.json().catch(() => ({})) as { deliveryId?: unknown };
+  const deliveryId = typeof body.deliveryId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.deliveryId) ? body.deliveryId : null;
+  if (body.deliveryId && !deliveryId) return NextResponse.json({ error: "Entrega no válida" }, { status: 400 });
   let eventId: string | null = null;
   if (!isWorker) {
     const event = await query<{ id: string }>(`SELECT e.id FROM events e WHERE e.status = 'active'
@@ -30,7 +33,8 @@ export async function POST(request: Request) {
       FROM credential_email_deliveries d JOIN students s ON s.id = d.student_id JOIN events e ON e.id = d.event_id JOIN badges b ON b.id = d.badge_id
       WHERE d.status = 'queued' AND d.next_attempt_at <= NOW() AND d.attempts < d.max_attempts
       AND ($1::uuid IS NULL OR d.event_id = $1)
-      ORDER BY d.created_at FOR UPDATE OF d SKIP LOCKED LIMIT 1`, [eventId]);
+      AND ($2::uuid IS NULL OR d.id = $2)
+      ORDER BY d.created_at FOR UPDATE OF d SKIP LOCKED LIMIT 1`, [eventId, deliveryId]);
     const row = result.rows[0];
     if (!row) return null;
     await client.query("UPDATE credential_email_deliveries SET status = 'sending', attempts = attempts + 1, updated_at = NOW() WHERE id = $1", [row.id]);

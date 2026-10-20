@@ -6,6 +6,7 @@ import { initials } from "@/lib/format";
 import { buildStudentWhere, normalizeStudentFilters } from "@/lib/student-query";
 import { StudentRegistrationLauncher } from "@/components/student-registration-launcher";
 import { CredentialEmailManager } from "@/components/credential-email-manager";
+import { resendConfiguration } from "@/lib/email-provider";
 
 type Student = {
   id: string;
@@ -56,7 +57,7 @@ export default async function StudentsPage({
       <div className="heading-actions">
         <a className="button button-secondary" href={exportUrl}><Download aria-hidden />Exportar CSV</a>
         {canManage && <Link className="button button-secondary" href="/students/import"><Upload aria-hidden />Importar CSV</Link>}
-        {canManage && <StudentRegistrationLauncher eventName={activeEvent?.name} workshops={workshopsResult.rows} />}
+        {canManage && <StudentRegistrationLauncher eventName={activeEvent?.name} workshops={workshopsResult.rows} emailProviderConfigured={resendConfiguration().configured} />}
       </div>
     </div>
     <form className="student-filters card" method="get">

@@ -8,14 +8,14 @@ import { StudentForm } from "@/components/student-form";
 
 type Workshop = { id: string; code: string; name: string; capacity: number | null; enrolled: number };
 
-export function StudentRegistrationLauncher({ eventName, workshops }: { eventName?: string; workshops: Workshop[] }) {
+export function StudentRegistrationLauncher({ eventName, workshops, emailProviderConfigured }: { eventName?: string; workshops: Workshop[]; emailProviderConfigured: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   function close() { setOpen(false); router.refresh(); }
   return <>
     <button className="button button-primary" onClick={() => setOpen(true)}><Plus aria-hidden />Registrar alumno</button>
     <Modal open={open} title="Registrar alumno" description="Datos básicos, tipo de credencial y talleres en un solo flujo." onClose={close} wide>
-      <StudentForm eventName={eventName} workshops={workshops} onCancel={close} />
+      <StudentForm eventName={eventName} workshops={workshops} emailProviderConfigured={emailProviderConfigured} onCancel={close} />
     </Modal>
   </>;
 }

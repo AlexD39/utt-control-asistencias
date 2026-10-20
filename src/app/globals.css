@@ -221,6 +221,10 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
 .credential-action h2 { margin-bottom: .25rem; }
 .credential-action p { margin: 0; max-width: 650px; font-size: .78rem; }
 .credential-action .alert { margin-top: .8rem; }
+.individual-email { margin: 1rem 0; }
+.individual-email h2 { display: flex; align-items: center; gap: .55rem; }
+.individual-email h2 svg { width: 1.15rem; height: 1.15rem; color: var(--forest-2); }
+.individual-email .success-banner { margin: .8rem 0 0; }
 .student-history { margin-top: 1rem; }
 .scanner-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .75fr); gap: 1rem; }
 .scanner-card { box-shadow: var(--shadow); }

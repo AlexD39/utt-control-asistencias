@@ -4,11 +4,12 @@ import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { BadgeCheck, CheckCircle2, UserPlus } from "lucide-react";
 import { CredentialPreview } from "@/components/credential-preview";
+import { StudentCredentialEmail } from "@/components/student-credential-email";
 
-type CreatedStudent = { id: string; name: string; enrollment: string; program: string; credential: string; credentialUseLimit: number | null };
+type CreatedStudent = { id: string; name: string; enrollment: string; email: string | null; program: string; credential: string; credentialUseLimit: number | null; workshopCount: number };
 type Workshop = { id: string; code: string; name: string; capacity: number | null; enrolled: number };
 
-export function StudentForm({ eventName, workshops, onCancel }: { eventName?: string; workshops: Workshop[]; onCancel?: () => void }) {
+export function StudentForm({ eventName, workshops, emailProviderConfigured, onCancel }: { eventName?: string; workshops: Workshop[]; emailProviderConfigured: boolean; onCancel?: () => void }) {
   const [student, setStudent] = useState<CreatedStudent | null>(null);
   const [credentialType, setCredentialType] = useState("reusable");
   const [error, setError] = useState("");
@@ -50,10 +51,11 @@ export function StudentForm({ eventName, workshops, onCancel }: { eventName?: st
         <p className="eyebrow">REGISTRO COMPLETADO</p>
         <h2>Alumno registrado correctamente</h2>
         <p><strong>{student.name}</strong> ya cuenta con una credencial activa.</p>
-        <div className="student-created-meta"><span>{student.enrollment}</span><span>{student.program}</span></div>
+        <div className="student-created-meta"><span>{student.enrollment}</span><span>{student.program}</span><span>{student.workshopCount} {student.workshopCount === 1 ? "taller asignado" : "talleres asignados"}</span></div>
       </div>
     </div>
     <p className="credential-next-step">Ahora puedes imprimir el código QR o configurar el chip NFC. Conserva esta pantalla hasta terminar la credencial.</p>
+    <StudentCredentialEmail studentId={student.id} email={student.email} providerConfigured={emailProviderConfigured} />
     <CredentialPreview student={student} />
     <div className="after-create"><Link href={`/students/${student.id}`} className="button button-secondary">Ver expediente</Link><button className="button button-primary" onClick={() => setStudent(null)}>Registrar otro alumno</button></div>
   </div>;

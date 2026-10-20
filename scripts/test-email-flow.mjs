@@ -34,9 +34,13 @@ try {
   const badge = await database.query("SELECT token_ciphertext, token_iv, token_tag FROM badges WHERE student_id = $1", [studentId]);
   assert.ok(badge.rows[0]?.token_ciphertext, "La credencial debe quedar cifrada");
   assert.equal(openCredential({ ciphertext: badge.rows[0].token_ciphertext, iv: badge.rows[0].token_iv, tag: badge.rows[0].token_tag }), created.student.credential);
-  const queue = await fetch(`${baseUrl}/api/credential-emails`, { method: "POST", headers, body: JSON.stringify({ action: "queue" }) });
+  assert.equal(created.student.email, `correo.${suffix}@example.edu.mx`);
+  assert.equal(created.student.workshopCount, 0);
+  const queue = await fetch(`${baseUrl}/api/students/${studentId}/credential-email`, { method: "POST", headers, body: JSON.stringify({ resend: false }) });
   const queued = await queue.json();
   assert.equal(queue.status, 200, JSON.stringify(queued));
+  assert.equal(queued.process, true);
+  assert.ok(queued.delivery?.id, "La entrega individual debe devolver su identificador");
   const delivery = await database.query("SELECT status, recipient FROM credential_email_deliveries WHERE student_id = $1", [studentId]);
   assert.equal(delivery.rows[0]?.status, "queued");
   assert.equal(delivery.rows[0]?.recipient, `correo.${suffix}@example.edu.mx`);
