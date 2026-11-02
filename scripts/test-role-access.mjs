@@ -17,7 +17,7 @@ function readEnv(path) {
 
 const expectations = {
   super_admin: { "/dashboard": 200, "/scanner": 200, "/events": 200, "/students": 200, "/attendances": 200, "/users": 200, "/api/sessions": 200 },
-  event_admin: { "/dashboard": 200, "/scanner": 200, "/events": 200, "/students": 200, "/attendances": 200, "/users": 307, "/api/sessions": 200 },
+  event_admin: { "/dashboard": 200, "/scanner": 200, "/events": 200, "/students": 200, "/attendances": 200, "/users": 200, "/api/sessions": 200 },
   scanner: { "/dashboard": 200, "/scanner": 200, "/events": 307, "/students": 307, "/attendances": 307, "/users": 307, "/api/sessions": 200 },
   viewer: { "/dashboard": 200, "/scanner": 307, "/events": 200, "/students": 200, "/attendances": 200, "/users": 307, "/api/sessions": 403 }
 };
@@ -25,10 +25,20 @@ const expectations = {
 const env = readEnv(new URL("../.env.local", import.meta.url));
 const baseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
 const database = new Client({ connectionString: env.DATABASE_URL });
+const temporaryUserIds = [];
 
 try {
   await database.connect();
-  const users = await database.query(`SELECT DISTINCT ON (role) id, name, email, role
+  let users = await database.query(`SELECT DISTINCT ON (role) id, name, email, role
+    FROM users WHERE active ORDER BY role, created_at`);
+  for (const role of Object.keys(expectations)) {
+    if (users.rows.some((candidate) => candidate.role === role)) continue;
+    const created = await database.query(`INSERT INTO users (name, email, password_hash, role)
+      VALUES ($1, $2, 'solo-pruebas-sin-inicio-de-sesion', $3) RETURNING id, name, email, role`,
+    [`Usuario temporal ${role}`, `qa-${role}-${Date.now()}@example.invalid`, role]);
+    temporaryUserIds.push(created.rows[0].id);
+  }
+  users = await database.query(`SELECT DISTINCT ON (role) id, name, email, role
     FROM users WHERE active ORDER BY role, created_at`);
   const secret = new TextEncoder().encode(env.JWT_SECRET ?? "solo-desarrollo-cambia-esta-clave-insegura");
 
@@ -58,5 +68,6 @@ try {
     console.log(`${role}: ${results.join(" ")}`);
   }
 } finally {
+  if (temporaryUserIds.length) await database.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [temporaryUserIds]).catch(() => undefined);
   await database.end().catch(() => undefined);
 }

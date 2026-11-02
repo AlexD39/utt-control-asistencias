@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { StudentForm } from "@/components/student-form";
-import { requireUser } from "@/lib/auth";
+import { isAdministrator, requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { resendConfiguration } from "@/lib/email-provider";
 
@@ -10,7 +10,7 @@ export default async function NewStudentPage() {
   const eventResult = await query<{ id: string; name: string }>(`SELECT e.id, e.name FROM events e
     WHERE e.status = 'active' AND ($1::boolean OR EXISTS (
       SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $2
-    )) ORDER BY e.starts_at DESC LIMIT 1`, [user.role === "super_admin", user.id]);
+    )) ORDER BY e.starts_at DESC LIMIT 1`, [isAdministrator(user), user.id]);
   const activeEvent = eventResult.rows[0];
   const workshops = activeEvent ? await query<{ id: string; code: string; name: string; capacity: number | null; enrolled: number }>(`SELECT s.id, s.code, s.name, s.capacity, COUNT(ss.student_id)::int enrolled
     FROM sessions s LEFT JOIN session_students ss ON ss.session_id = s.id

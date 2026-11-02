@@ -48,7 +48,7 @@ export function EventParticipantsManager({ eventId, assigned, available }: { eve
   }
 
   return <section className="assignment-section">
-    <div className="section-heading"><div><p className="eyebrow">PADRÓN DEL CONGRESO</p><h2>Alumnos asignados</h2><p>{assigned.length} participantes forman parte de este congreso.</p></div><Link className="button button-secondary" href={"/students/import?eventId=" + eventId}><Upload aria-hidden />Importar CSV aquí</Link></div>
+    <div className="section-heading"><div><p className="eyebrow">PADRÓN DEL CONGRESO</p><h2>Alumnos asignados</h2><p>{assigned.length} participantes forman parte de este congreso.</p></div><Link className="button button-secondary" href={"/students/import?eventId=" + eventId}><Upload aria-hidden />Importar Excel aquí</Link></div>
     <div className="assignment-layout">
       <div className="card assignment-picker"><h3>Agregar alumnos existentes</h3><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por nombre, matrícula o carrera" />
         <div className="selection-list">{filtered.map((student) => <label className="selection-item" key={student.id}><input type="checkbox" checked={selected.includes(student.id)} onChange={() => toggle(student.id)} /><span><strong>{student.name}</strong><small>{student.enrollment} · {student.program}</small></span></label>)}</div>

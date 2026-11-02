@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Download, Upload } from "lucide-react";
-import { requireUser } from "@/lib/auth";
+import { isAdministrator, requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { initials } from "@/lib/format";
 import { buildStudentWhere, normalizeStudentFilters } from "@/lib/student-query";
@@ -28,7 +28,7 @@ export default async function StudentsPage({
   const canManage = user.role === "super_admin" || user.role === "event_admin";
   const activeEventResult = canManage ? await query<{ id: string; name: string }>(`SELECT e.id, e.name FROM events e
     WHERE e.status = 'active' AND ($1::boolean OR EXISTS (SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $2))
-    ORDER BY e.starts_at DESC LIMIT 1`, [user.role === "super_admin", user.id]) : { rows: [] };
+    ORDER BY e.starts_at DESC LIMIT 1`, [isAdministrator(user), user.id]) : { rows: [] };
   const activeEvent = activeEventResult.rows[0];
   const workshopsResult = activeEvent ? await query<{ id: string; code: string; name: string; capacity: number | null; enrolled: number }>(`SELECT s.id, s.code, s.name, s.capacity, COUNT(ss.student_id)::int enrolled
     FROM sessions s LEFT JOIN session_students ss ON ss.session_id = s.id
@@ -56,7 +56,7 @@ export default async function StudentsPage({
       <div><p className="eyebrow">PADRÓN</p><h1>Alumnos</h1><p>{studentsResult.rows.length} participantes coinciden con la consulta.</p></div>
       <div className="heading-actions">
         <a className="button button-secondary" href={exportUrl}><Download aria-hidden />Exportar CSV</a>
-        {canManage && <Link className="button button-secondary" href="/students/import"><Upload aria-hidden />Importar CSV</Link>}
+        {canManage && <Link className="button button-secondary" href="/students/import"><Upload aria-hidden />Importar Excel</Link>}
         {canManage && <StudentRegistrationLauncher eventName={activeEvent?.name} workshops={workshopsResult.rows} emailProviderConfigured={resendConfiguration().configured} />}
       </div>
     </div>

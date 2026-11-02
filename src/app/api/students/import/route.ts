@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, isAdministrator } from "@/lib/auth";
 import { normalizeCsvHeader, parseCsv } from "@/lib/csv";
 import { transaction } from "@/lib/db";
 import { canManageEvent } from "@/lib/event-access";
+import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_STUDENTS, parseStudentImportFile } from "@/lib/student-import-file";
 
 const eventIdSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-const bodySchema = z.object({ content: z.string().min(1).max(2_000_000), eventId: eventIdSchema.optional() });
+const legacyBodySchema = z.object({ content: z.string().min(1).max(MAX_IMPORT_FILE_BYTES), eventId: eventIdSchema.optional() });
 const baseRowSchema = z.object({
   enrollment: z.string().trim().min(3).max(40).transform((value) => value.toUpperCase()),
   name: z.string().trim().min(3).max(150),
@@ -23,15 +24,45 @@ function normalizedValue(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 }
 
+async function readImportRequest(request: Request) {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    const file = form.get("file");
+    const eventIdValue = form.get("eventId");
+    const eventId = typeof eventIdValue === "string" && eventIdValue ? eventIdValue : undefined;
+    if (eventId && !eventIdSchema.safeParse(eventId).success) throw new Error("INVALID_EVENT");
+    if (!(file instanceof File) || file.size === 0) throw new Error("EMPTY_FILE");
+    if (file.size > MAX_IMPORT_FILE_BYTES) throw new Error("FILE_TOO_LARGE");
+    const content = Buffer.from(await file.arrayBuffer());
+    const rows = file.name.trim().toLowerCase().endsWith(".csv")
+      ? parseCsv(content.toString("utf8"))
+      : await parseStudentImportFile(file.name, content);
+    return { rows, eventId };
+  }
+
+  const body = legacyBodySchema.safeParse(await request.json().catch(() => null));
+  if (!body.success) throw new Error("EMPTY_FILE");
+  return { rows: parseCsv(body.data.content), eventId: body.data.eventId };
+}
+
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user || (user.role !== "super_admin" && user.role !== "event_admin")) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
-  const body = bodySchema.safeParse(await request.json());
-  if (!body.success) return NextResponse.json({ error: "El archivo está vacío o supera 2 MB" }, { status: 400 });
-  if (body.data.eventId && !(await canManageEvent(user, body.data.eventId))) return NextResponse.json({ error: "No tienes acceso a ese congreso" }, { status: 403 });
-  const rows = parseCsv(body.data.content);
-  if (rows.length < 2) return NextResponse.json({ error: "El CSV no contiene alumnos" }, { status: 400 });
-  if (rows.length > 5001) return NextResponse.json({ error: "El máximo por archivo es de 5,000 alumnos" }, { status: 400 });
+  let imported: Awaited<ReturnType<typeof readImportRequest>>;
+  try {
+    imported = await readImportRequest(request);
+  } catch (error) {
+    const message = (error as Error).message;
+    if (message === "UNSUPPORTED_FILE") return NextResponse.json({ error: "Formato no compatible. Usa un archivo .xlsx o .csv" }, { status: 400 });
+    if (message === "FILE_TOO_LARGE") return NextResponse.json({ error: "El archivo supera el límite de 5 MB" }, { status: 400 });
+    if (message === "INVALID_EVENT") return NextResponse.json({ error: "El congreso seleccionado no es válido" }, { status: 400 });
+    return NextResponse.json({ error: "No fue posible leer el archivo. Verifica que no esté dañado o protegido con contraseña" }, { status: 400 });
+  }
+  if (imported.eventId && !(await canManageEvent(user, imported.eventId))) return NextResponse.json({ error: "No tienes acceso a ese congreso" }, { status: 403 });
+  const rows = imported.rows;
+  if (rows.length < 2) return NextResponse.json({ error: "El archivo no contiene alumnos" }, { status: 400 });
+  if (rows.length > MAX_IMPORT_STUDENTS + 1) return NextResponse.json({ error: `El máximo por archivo es de ${MAX_IMPORT_STUDENTS.toLocaleString("es-MX")} alumnos` }, { status: 400 });
 
   const headers = rows[0].map(normalizeCsvHeader);
   const column = (...names: string[]) => headers.findIndex((header) => names.includes(header));
@@ -69,11 +100,11 @@ export async function POST(request: Request) {
 
   try {
     const result = await transaction(async (client) => {
-      const event = body.data.eventId
-        ? await client.query<{ id: string }>("SELECT id FROM events WHERE id = $1", [body.data.eventId])
+      const event = imported.eventId
+        ? await client.query<{ id: string }>("SELECT id FROM events WHERE id = $1", [imported.eventId])
         : await client.query<{ id: string }>(`SELECT e.id FROM events e WHERE e.status = 'active' AND ($1::boolean OR EXISTS (
             SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $2
-          )) ORDER BY e.starts_at DESC LIMIT 1`, [user.role === "super_admin", user.id]);
+          )) ORDER BY e.starts_at DESC LIMIT 1`, [isAdministrator(user), user.id]);
       if (!event.rows[0]) throw new Error("NO_ACTIVE_EVENT");
       const eventId = event.rows[0].id;
       const requestedCodes = [...new Set(students.flatMap((student) => student.workshopCodes))];

@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, CircleX, Nfc, ScanLine } from "lucide-react";
+import jsQR from "jsqr";
 import { getNdefReader, nfcErrorMessage, readCredentialFromNdef } from "@/lib/web-nfc";
 
 type Session = { id: string; name: string; room: string; starts_at: string };
@@ -30,6 +31,7 @@ export function Scanner() {
   const scanningRef = useRef(false);
   const nfcControllerRef = useRef<AbortController | null>(null);
   const processingRef = useRef(false);
+  const qrCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     fetch("/api/sessions").then(async (response) => {
@@ -67,6 +69,10 @@ export function Scanner() {
       });
       const data = await response.json();
       setResult(data);
+      if (data.result === "accepted" || data.result === "duplicate") {
+        setCode("");
+        if (source === "nfc") stopNfc();
+      }
       if (navigator.vibrate) navigator.vibrate(data.result === "accepted" ? 100 : [100, 70, 100]);
     } catch {
       setResult({ result: "error", message: "No fue posible comunicarse con el servidor." });
@@ -147,10 +153,6 @@ export function Scanner() {
       return;
     }
     const BarcodeDetectorClass = (window as unknown as { BarcodeDetector?: new (options: { formats: string[] }) => { detect: (video: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector;
-    if (!BarcodeDetectorClass) {
-      setResult({ result: "error", message: "Este navegador no incluye lector QR. Usa Chrome/Edge actualizado o captura el código manualmente." });
-      return;
-    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       streamRef.current = stream;
@@ -160,14 +162,36 @@ export function Scanner() {
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
       scanningRef.current = true;
-      const detector = new BarcodeDetectorClass({ formats: ["qr_code"] });
-      const detect = async () => {
+      const detector = BarcodeDetectorClass ? new BarcodeDetectorClass({ formats: ["qr_code"] }) : null;
+      let lastFallbackAttempt = 0;
+      const detect = async (timestamp: number) => {
         if (!scanningRef.current || !videoRef.current) return;
-        const codes = await detector.detect(videoRef.current).catch(() => []);
-        if (codes[0]?.rawValue) {
-          setCode(codes[0].rawValue);
+        if (!detector && timestamp - lastFallbackAttempt < 180) {
+          requestAnimationFrame(detect);
+          return;
+        }
+        if (!detector) lastFallbackAttempt = timestamp;
+        let rawValue = "";
+        if (detector) {
+          const codes = await detector.detect(videoRef.current).catch(() => []);
+          rawValue = codes[0]?.rawValue ?? "";
+        } else if (videoRef.current.videoWidth && videoRef.current.videoHeight) {
+          const canvas = qrCanvasRef.current ?? document.createElement("canvas");
+          qrCanvasRef.current = canvas;
+          const scale = Math.min(1, 900 / videoRef.current.videoWidth);
+          canvas.width = Math.max(1, Math.round(videoRef.current.videoWidth * scale));
+          canvas.height = Math.max(1, Math.round(videoRef.current.videoHeight * scale));
+          const context = canvas.getContext("2d", { willReadFrequently: true });
+          if (context) {
+            context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+            const image = context.getImageData(0, 0, canvas.width, canvas.height);
+            rawValue = jsQR(image.data, image.width, image.height, { inversionAttempts: "attemptBoth" })?.data ?? "";
+          }
+        }
+        if (rawValue) {
+          setCode(rawValue);
           stopCamera();
-          await register(codes[0].rawValue, "qr");
+          await register(rawValue, "qr");
           return;
         }
         requestAnimationFrame(detect);

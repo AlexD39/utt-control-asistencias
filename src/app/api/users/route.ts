@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, isAdministrator } from "@/lib/auth";
 import { transaction } from "@/lib/db";
 import { createUserSchema } from "@/lib/user-schemas";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
-  if (!user || user.role !== "super_admin") return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  if (!user || !isAdministrator(user)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   const parsed = createUserSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
   try {

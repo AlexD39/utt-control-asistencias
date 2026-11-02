@@ -6,7 +6,7 @@ import { StudentEditForm } from "@/components/student-edit-form";
 import { StudentAccessManager } from "@/components/student-access-manager";
 import { StudentCredentialEmail, type StudentEmailDelivery } from "@/components/student-credential-email";
 import { StudentEventManager, type StudentEventMembership } from "@/components/student-event-manager";
-import { requireUser } from "@/lib/auth";
+import { isAdministrator, requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { resendConfiguration } from "@/lib/email-provider";
 import { formatDate, initials } from "@/lib/format";
@@ -43,12 +43,12 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
       FROM event_students es JOIN events e ON e.id = es.event_id
       WHERE es.student_id = $1
         AND ($2::boolean OR EXISTS (SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $3))
-      ORDER BY CASE e.status WHEN 'active' THEN 0 WHEN 'draft' THEN 1 ELSE 2 END, e.starts_at DESC`, [id, user.role === "super_admin", user.id]),
+      ORDER BY CASE e.status WHEN 'active' THEN 0 WHEN 'draft' THEN 1 ELSE 2 END, e.starts_at DESC`, [id, isAdministrator(user), user.id]),
     user.role !== "viewer" ? query<StudentEventRow>(`SELECT e.id, e.name, e.venue, e.status::text, 0::int attendance_count
       FROM events e WHERE e.status = 'active'
         AND ($1::boolean OR EXISTS (SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $2))
         AND NOT EXISTS (SELECT 1 FROM event_students es WHERE es.event_id = e.id AND es.student_id = $3)
-      ORDER BY e.starts_at DESC`, [user.role === "super_admin", user.id, id]) : Promise.resolve({ rows: [] as StudentEventRow[] }),
+      ORDER BY e.starts_at DESC`, [isAdministrator(user), user.id, id]) : Promise.resolve({ rows: [] as StudentEventRow[] }),
   ]);
   const memberships: StudentEventMembership[] = membershipResult.rows.map((event) => ({ id: event.id, name: event.name, venue: event.venue, status: event.status, attendanceCount: event.attendance_count }));
   const availableActiveEvents: StudentEventMembership[] = availableEventResult.rows.map((event) => ({ id: event.id, name: event.name, venue: event.venue, status: event.status, attendanceCount: 0 }));

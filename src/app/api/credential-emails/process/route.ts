@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, isAdministratorRole } from "@/lib/auth";
 import { openCredential } from "@/lib/credential-crypto";
 import { transaction, query } from "@/lib/db";
 import { sendCredentialEmail } from "@/lib/email-provider";
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   if (!isWorker) {
     const event = await query<{ id: string }>(`SELECT e.id FROM events e WHERE e.status = 'active'
       AND ($1::boolean OR EXISTS (SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $2))
-      ORDER BY e.starts_at DESC LIMIT 1`, [user.role === "super_admin", user.id]);
+      ORDER BY e.starts_at DESC LIMIT 1`, [isAdministratorRole(user.role), user.id]);
     eventId = event.rows[0]?.id ?? null;
     if (!eventId) return NextResponse.json({ error: "No existe un congreso activo disponible" }, { status: 409 });
   }

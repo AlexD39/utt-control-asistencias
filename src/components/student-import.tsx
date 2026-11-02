@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { CheckCircle2, Download, FileUp, Upload } from "lucide-react";
+import { CheckCircle2, Download, FileSpreadsheet, FileUp, Upload } from "lucide-react";
 
 type ImportResult = { total: number; created: number; updated: number; workshopAssignments: number };
 
@@ -16,13 +16,19 @@ export function StudentImport({ eventId, eventName }: { eventId?: string; eventN
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!file) return;
+    if (file.size > 5_000_000) {
+      setError("El archivo supera el límite de 5 MB");
+      return;
+    }
     setLoading(true);
     setError("");
     setDetails([]);
+    const payload = new FormData();
+    payload.append("file", file);
+    if (eventId) payload.append("eventId", eventId);
     const response = await fetch("/api/students/import", {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ content: await file.text(), eventId })
+      body: payload
     });
     const data = await response.json();
     setLoading(false);
@@ -41,15 +47,25 @@ export function StudentImport({ eventId, eventName }: { eventId?: string; eventN
   </section>;
 
   return <form className="card import-card" onSubmit={submit}>
-    <div className="form-section-head"><span>CSV</span><div><h2>Selecciona el archivo</h2><p>Los alumnos existentes se actualizarán usando su matrícula y se asignarán a {eventName ?? "el congreso activo"}. Los nuevos quedarán listos para generar su credencial.</p></div></div>
+    <div className="form-section-head"><span><FileSpreadsheet aria-hidden /></span><div><h2>Importar desde Excel o CSV</h2><p>Los alumnos existentes se actualizarán por matrícula y todos se asignarán a {eventName ?? "el congreso activo"}. Primero se valida el archivo completo; si existe un error, no se guarda ninguna fila.</p></div></div>
+    <div className="import-instructions" aria-label="Instrucciones para importar alumnos">
+      <h3>Cómo preparar el archivo</h3>
+      <ol>
+        <li><strong>Descarga la plantilla</strong> y ábrela con Excel, Google Sheets o LibreOffice.</li>
+        <li><strong>No cambies los encabezados.</strong> Matrícula, Nombre y Programa son obligatorios.</li>
+        <li>Escribe <strong>un alumno por fila</strong>. Para varios talleres utiliza sus claves separadas por <code>|</code>.</li>
+        <li>Guarda como <strong>Libro de Excel (.xlsx)</strong> o <strong>CSV UTF-8 (.csv)</strong> y selecciónalo aquí.</li>
+      </ol>
+      <p><strong>Importante:</strong> configura la columna Matrícula como texto en Excel para conservar ceros iniciales.</p>
+    </div>
     <label className="file-drop">
-      <input type="file" accept=".csv,text/csv" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
-      <span><FileUp aria-hidden /></span><strong>{file?.name ?? "Seleccionar archivo CSV"}</strong><small>Máximo 5,000 alumnos o 2 MB</small>
+      <input type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" onChange={(event) => { setFile(event.target.files?.[0] ?? null); setError(""); setDetails([]); }} />
+      <span><FileUp aria-hidden /></span><strong>{file?.name ?? "Seleccionar archivo de Excel o CSV"}</strong><small>Formatos .xlsx y .csv · máximo 5,000 alumnos o 5 MB</small>
     </label>
-    <div className="csv-columns"><strong>Columnas</strong><span>Matrícula *</span><span>Nombre *</span><span>Programa *</span><span>Correo</span><span>Talleres</span><span>TipoCredencial</span><span>Usos</span></div>
-    <p className="csv-help">Separa varias claves de taller con <code>|</code>. Usa <strong>reutilizable</strong> o <strong>limitada</strong>; para una credencial limitada indica el número de usos.</p>
-    <a href="/plantilla-alumnos.csv" download className="template-link"><Download aria-hidden />Descargar plantilla de ejemplo</a>
+    <div className="csv-columns"><strong>Columnas aceptadas</strong><span>Matrícula *</span><span>Nombre *</span><span>Programa *</span><span>Correo</span><span>Talleres</span><span>TipoCredencial</span><span>Usos</span></div>
+    <p className="csv-help">En <strong>TipoCredencial</strong> usa <code>reutilizable</code> o <code>limitada</code>. Si eliges limitada, escribe entre 1 y 1,000 en <strong>Usos</strong>. Las claves de Talleres deben existir en el congreso.</p>
+    <a href="/plantilla-alumnos.csv" download className="template-link"><Download aria-hidden />Descargar plantilla compatible con Excel</a>
     {error && <div className="alert alert-error"><strong>{error}</strong>{details.map((detail) => <div key={detail}>{detail}</div>)}</div>}
-    <div className="form-actions"><Link href={eventId ? "/events/" + eventId : "/students"} className="button button-secondary">Cancelar</Link><button className="button button-primary" disabled={!file || loading}><Upload aria-hidden />{loading ? "Importando…" : "Importar alumnos"}</button></div>
+    <div className="form-actions"><Link href={eventId ? "/events/" + eventId : "/students"} className="button button-secondary">Cancelar</Link><button className="button button-primary" disabled={!file || loading}><Upload aria-hidden />{loading ? "Validando e importando…" : "Validar e importar alumnos"}</button></div>
   </form>;
 }

@@ -23,11 +23,18 @@ let studentId;
 let eventId;
 let firstSessionId;
 let secondSessionId;
+let temporaryEventId;
+const temporaryUserIds = [];
 
 async function authCookie(role) {
-  const userResult = await database.query("SELECT id, name, email, role FROM users WHERE role = $1 AND active ORDER BY created_at LIMIT 1", [role]);
+  let userResult = await database.query("SELECT id, name, email, role FROM users WHERE role = $1 AND active ORDER BY created_at LIMIT 1", [role]);
+  if (!userResult.rows[0]) {
+    userResult = await database.query(`INSERT INTO users (name, email, password_hash, role)
+      VALUES ($1, $2, 'solo-pruebas-sin-inicio-de-sesion', $3) RETURNING id, name, email, role`,
+    [`Usuario temporal ${role}`, `qa-access-${role}-${suffix}@example.invalid`, role]);
+    temporaryUserIds.push(userResult.rows[0].id);
+  }
   const user = userResult.rows[0];
-  assert.ok(user, `Falta usuario ${role}`);
   const secret = new TextEncoder().encode(env.JWT_SECRET ?? "solo-desarrollo-cambia-esta-clave-insegura");
   const token = await new SignJWT({ name: user.name, email: user.email, role: user.role }).setProtectedHeader({ alg: "HS256" }).setSubject(user.id).setIssuedAt().setExpirationTime("5m").sign(secret);
   return { user, cookie: `congreso_session=${token}` };
@@ -40,8 +47,13 @@ async function scan(cookie, sessionId) {
 
 try {
   await database.connect();
-  const event = await database.query("SELECT id, starts_at, ends_at FROM events WHERE status = 'active' ORDER BY starts_at DESC LIMIT 1");
-  assert.ok(event.rows[0], "No hay congreso activo");
+  let event = await database.query("SELECT id, starts_at, ends_at FROM events WHERE status = 'active' ORDER BY starts_at DESC LIMIT 1");
+  if (!event.rows[0]) {
+    event = await database.query(`INSERT INTO events (name, venue, starts_at, ends_at, status)
+      VALUES ($1, 'Pruebas automatizadas', NOW() - INTERVAL '1 hour', NOW() + INTERVAL '1 day', 'active')
+      RETURNING id, starts_at, ends_at`, [`Congreso temporal accesos ${suffix}`]);
+    temporaryEventId = event.rows[0].id;
+  }
   eventId = event.rows[0].id;
   const scanner = await authCookie("scanner");
   const admin = await authCookie("super_admin");
@@ -90,6 +102,8 @@ try {
     await database.query("DELETE FROM attendances WHERE student_id = $1", [studentId]).catch(() => undefined);
     await database.query("DELETE FROM students WHERE enrollment = ANY($1::text[])", [[enrollment, importEnrollment, rollbackEnrollment]]).catch(() => undefined);
     await database.query("DELETE FROM sessions WHERE id = ANY($1::uuid[])", [[firstSessionId, secondSessionId].filter(Boolean)]).catch(() => undefined);
+    if (temporaryEventId) await database.query("DELETE FROM events WHERE id = $1", [temporaryEventId]).catch(() => undefined);
   }
+  if (temporaryUserIds.length) await database.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [temporaryUserIds]).catch(() => undefined);
   await database.end().catch(() => undefined);
 }

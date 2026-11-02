@@ -12,6 +12,14 @@ export type SessionUser = {
   role: Role;
 };
 
+export function isAdministratorRole(role: Role | string) {
+  return role === "super_admin" || role === "event_admin";
+}
+
+export function isAdministrator(user: { role: Role | string }) {
+  return isAdministratorRole(user.role);
+}
+
 const COOKIE_NAME = "congreso_session";
 const secret = new TextEncoder().encode(
   process.env.JWT_SECRET ?? "solo-desarrollo-cambia-esta-clave-insegura"
@@ -65,7 +73,7 @@ export async function requireUser(roles?: Role[]) {
 export function roleLabel(role: Role) {
   return {
     super_admin: "Superadministración",
-    event_admin: "Administración de evento",
+    event_admin: "Administración",
     scanner: "Registro",
     viewer: "Consulta"
   }[role];

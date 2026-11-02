@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { requireUser } from "@/lib/auth";
+import { isAdministrator, requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { formatDate } from "@/lib/format";
 import { EventForm } from "@/components/event-form";
@@ -20,7 +20,7 @@ export default async function EventsPage() {
     (SELECT COUNT(*) FROM event_students es WHERE es.event_id = e.id)::text students,
     (SELECT COUNT(*) FROM attendances a WHERE a.event_id = e.id)::text attendances
     FROM events e WHERE ($1::boolean OR EXISTS (SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $2))
-    ORDER BY CASE e.status WHEN 'active' THEN 0 WHEN 'draft' THEN 1 ELSE 2 END, e.starts_at DESC`, [user.role === "super_admin", user.id]);
+    ORDER BY CASE e.status WHEN 'active' THEN 0 WHEN 'draft' THEN 1 ELSE 2 END, e.starts_at DESC`, [isAdministrator(user), user.id]);
 
   return <>
     <div className="page-heading"><div><p className="eyebrow">ADMINISTRACIÓN</p><h1>Congresos</h1><p>El sistema opera con un congreso activo, conservando el historial de los anteriores.</p></div></div>

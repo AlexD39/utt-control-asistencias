@@ -85,3 +85,24 @@ test("muestra el centro de envíos y su prevalidación", async ({ page }) => {
   await expect(page.getByText(/Resend (configurado|pendiente de configurar)/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Enviar pendientes" })).toBeVisible();
 });
+
+test("limpia el código después de confirmar una asistencia", async ({ page }) => {
+  const sessionId = "00000000-0000-4000-8000-000000000001";
+  await page.route("**/api/sessions", async (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ sessions: [{ id: sessionId, name: "Taller de prueba", room: "QA", starts_at: new Date().toISOString() }] })
+  }));
+  await page.route("**/api/scans", async (route) => route.fulfill({
+    status: 201,
+    contentType: "application/json",
+    body: JSON.stringify({ result: "accepted", message: "Asistencia registrada", student: { name: "Alumno prueba", enrollment: "QA001", program: "Sistemas" } })
+  }));
+
+  await page.goto("/scanner");
+  const input = page.getByPlaceholder("Código del gafete");
+  await input.fill("UTT-0123456789ABCDEF01234567");
+  await page.getByRole("button", { name: "Registrar" }).click();
+  await expect(page.getByRole("heading", { name: "Registro confirmado" })).toBeVisible();
+  await expect(input).toHaveValue("");
+});

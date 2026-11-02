@@ -13,7 +13,7 @@ const items = [
   { href: "/scanner", label: "Escanear", icon: ScanLine, roles: ["super_admin", "event_admin", "scanner"] },
   { href: "/attendances", label: "Asistencias", icon: ClipboardCheck, roles: ["super_admin", "event_admin", "viewer"] },
   { href: "/students", label: "Alumnos", icon: GraduationCap, roles: ["super_admin", "event_admin", "viewer"] },
-  { href: "/users", label: "Equipo y permisos", icon: UsersRound, roles: ["super_admin"] }
+  { href: "/users", label: "Equipo y permisos", icon: UsersRound, roles: ["super_admin", "event_admin"] }
 ] satisfies Array<{ href: string; label: string; icon: LucideIcon; roles: Role[] }>;
 
 export function Sidebar({ role }: { role: Role }) {

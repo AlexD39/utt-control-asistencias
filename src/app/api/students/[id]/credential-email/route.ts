@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, isAdministrator } from "@/lib/auth";
 import { transaction } from "@/lib/db";
 
 type Delivery = { id: string; status: "queued" | "sending" | "sent" | "failed"; sent_at: Date | null; recipient: string };
@@ -21,7 +21,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         JOIN badges b ON b.event_id = e.id AND b.student_id = s.id AND b.active
         WHERE s.id = $1 AND s.active AND b.token_ciphertext IS NOT NULL
         AND ($2::boolean OR EXISTS (SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $3))
-        ORDER BY e.starts_at DESC LIMIT 1 FOR UPDATE OF b`, [studentId, user.role === "super_admin", user.id]);
+        ORDER BY e.starts_at DESC LIMIT 1 FOR UPDATE OF b`, [studentId, isAdministrator(user), user.id]);
       const student = result.rows[0];
       if (!student) throw new Error("NO_CREDENTIAL");
       const recipient = student.email?.trim().toLowerCase();

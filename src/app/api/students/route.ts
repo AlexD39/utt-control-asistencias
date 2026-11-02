@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, isAdministrator } from "@/lib/auth";
 import { generateBadgeCode } from "@/lib/badges";
 import { sealCredential } from "@/lib/credential-crypto";
 import { transaction } from "@/lib/db";
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const result = await transaction(async (client) => {
       const event = await client.query<{ id: string }>(`SELECT e.id FROM events e WHERE e.status = 'active' AND ($1::boolean OR EXISTS (
         SELECT 1 FROM event_staff ef WHERE ef.event_id = e.id AND ef.user_id = $2
-      )) ORDER BY e.starts_at DESC LIMIT 1`, [user.role === "super_admin", user.id]);
+      )) ORDER BY e.starts_at DESC LIMIT 1`, [isAdministrator(user), user.id]);
       if (!event.rows[0]) throw new Error("NO_ACTIVE_EVENT");
       const student = await client.query<{ id: string; name: string; enrollment: string; email: string | null; program: string }>(
         `INSERT INTO students (enrollment, name, email, program) VALUES ($1, $2, $3, $4)

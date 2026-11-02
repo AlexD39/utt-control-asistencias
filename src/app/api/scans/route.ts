@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, isAdministrator } from "@/lib/auth";
 import { transaction } from "@/lib/db";
 
 const schema = z.object({
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
        WHERE s.id = $1 AND s.active = TRUE AND e.status = 'active' AND ($2::boolean OR EXISTS (
          SELECT 1 FROM event_staff ef WHERE ef.event_id = s.event_id AND ef.user_id = $3
        ))`,
-      [parsed.data.sessionId, user.role === "super_admin", user.id]
+      [parsed.data.sessionId, isAdministrator(user), user.id]
     );
     const session = sessionResult.rows[0];
     if (!session) return { status: 404, body: { result: "invalid_session", message: "La sesión no está disponible" } };
