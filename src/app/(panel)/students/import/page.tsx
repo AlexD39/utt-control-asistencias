@@ -9,15 +9,22 @@ import { notFound } from "next/navigation";
 export default async function ImportStudentsPage({ searchParams }: { searchParams: Promise<{ eventId?: string }> }) {
   const user = await requireUser(["super_admin", "event_admin"]);
   const { eventId } = await searchParams;
-  let eventName: string | undefined;
+  let targetEvent: { id: string; name: string } | undefined;
   if (eventId) {
     if (!(await canManageEvent(user, eventId))) notFound();
-    const event = await query<{ name: string }>("SELECT name FROM events WHERE id = $1", [eventId]);
+    const event = await query<{ id: string; name: string }>("SELECT id, name FROM events WHERE id = $1", [eventId]);
     if (!event.rows[0]) notFound();
-    eventName = event.rows[0].name;
+    targetEvent = event.rows[0];
+  } else {
+    const active = await query<{ id: string; name: string }>("SELECT id, name FROM events WHERE status = 'active' ORDER BY starts_at DESC LIMIT 1");
+    targetEvent = active.rows[0];
   }
+  const workshops = targetEvent ? await query<{ id: string; code: string; name: string; capacity: number | null; enrolled: number }>(`SELECT s.id, s.code, s.name, s.capacity, COUNT(ss.student_id)::int enrolled
+    FROM sessions s LEFT JOIN session_students ss ON ss.session_id = s.id
+    WHERE s.event_id = $1 AND s.session_type = 'workshop' AND s.active
+    GROUP BY s.id ORDER BY s.starts_at, s.name`, [targetEvent.id]) : { rows: [] };
   return <>
-    <div className="page-heading"><div><p className="eyebrow">PADRÓN · IMPORTACIÓN</p><h1>Importar alumnos desde Excel</h1><p>{eventName ? "Se asignarán a " + eventName + "." : "Carga o actualiza el padrón con un archivo .xlsx o .csv."}</p></div><Link href={eventId ? "/events/" + eventId : "/students"} className="button button-secondary"><ArrowLeft aria-hidden />Volver</Link></div>
-    <StudentImport eventId={eventId} eventName={eventName} />
+    <div className="page-heading"><div><p className="eyebrow">PADRÓN · IMPORTACIÓN</p><h1>Importar alumnos desde Excel</h1><p>{targetEvent ? "Se asignarán a " + targetEvent.name + "." : "Carga o actualiza el padrón con un archivo .xlsx o .csv."}</p></div><Link href={eventId ? "/events/" + eventId : "/students"} className="button button-secondary"><ArrowLeft aria-hidden />Volver</Link></div>
+    <StudentImport eventId={targetEvent?.id} eventName={targetEvent?.name} workshops={workshops.rows} returnToEvent={Boolean(eventId)} />
   </>;
 }

@@ -7,6 +7,7 @@ import { sendCredentialEmail } from "@/lib/email-provider";
 type Delivery = {
   id: string; recipient: string; attempts: number; student_name: string; enrollment: string; program: string; event_name: string;
   token_ciphertext: string; token_iv: string; token_tag: string;
+  workshop_names: string[];
 };
 
 export async function POST(request: Request) {
@@ -29,7 +30,9 @@ export async function POST(request: Request) {
     WHERE status = 'sending' AND updated_at < NOW() - INTERVAL '10 minutes' AND ($1::uuid IS NULL OR event_id = $1)`, [eventId]);
   const delivery = await transaction(async (client) => {
     const result = await client.query<Delivery>(`SELECT d.id, d.recipient, d.attempts, s.name student_name, s.enrollment, s.program, e.name event_name,
-      b.token_ciphertext, b.token_iv, b.token_tag
+      b.token_ciphertext, b.token_iv, b.token_tag,
+      ARRAY(SELECT se.name FROM session_students ss JOIN sessions se ON se.id = ss.session_id
+        WHERE ss.student_id = d.student_id AND se.event_id = d.event_id AND se.active ORDER BY se.starts_at, se.name) workshop_names
       FROM credential_email_deliveries d JOIN students s ON s.id = d.student_id JOIN events e ON e.id = d.event_id JOIN badges b ON b.id = d.badge_id
       WHERE d.status = 'queued' AND d.next_attempt_at <= NOW() AND d.attempts < d.max_attempts
       AND ($1::uuid IS NULL OR d.event_id = $1)
@@ -43,7 +46,7 @@ export async function POST(request: Request) {
   if (!delivery) return NextResponse.json({ processed: false });
   try {
     const credential = openCredential({ ciphertext: delivery.token_ciphertext, iv: delivery.token_iv, tag: delivery.token_tag });
-    const sent = await sendCredentialEmail({ to: delivery.recipient, studentName: delivery.student_name, enrollment: delivery.enrollment, program: delivery.program, eventName: delivery.event_name, credential });
+    const sent = await sendCredentialEmail({ to: delivery.recipient, studentName: delivery.student_name, enrollment: delivery.enrollment, program: delivery.program, eventName: delivery.event_name, credential, workshopNames: delivery.workshop_names });
     await query(`UPDATE credential_email_deliveries SET status = 'sent', provider = $1, provider_message_id = $2,
       last_error = NULL, sent_at = NOW(), updated_at = NOW() WHERE id = $3`, [sent.provider, sent.messageId, delivery.id]);
     return NextResponse.json({ processed: true, status: "sent", recipient: delivery.recipient });

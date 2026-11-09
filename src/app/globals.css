@@ -312,6 +312,12 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
 .import-instructions ol { display: grid; gap: .45rem; margin: 0; padding-left: 1.25rem; color: var(--muted); font-size: .8rem; line-height: 1.55; }
 .import-instructions p { margin: .8rem 0 0; font-size: .76rem; }
 .import-instructions code, .csv-help code { padding: .1rem .3rem; border-radius: 4px; background: #e5efeb; color: var(--forest); font-weight: 700; }
+.import-workshops { margin-top: 1.2rem; }
+.import-workshops > .list-note:first-of-type { margin-bottom: .55rem; }
+.import-workshops > .list-note:last-child { display: block; margin-top: .65rem; font-weight: 700; }
+.import-email-option { margin: 1rem 0; padding: .9rem 1rem; border: 1px solid var(--line); border-radius: 12px; background: #fbfdfc; }
+.import-email-option span, .import-email-option strong, .import-email-option small { display: block; }
+.import-email-option small { margin-top: .25rem; color: var(--muted); font-size: .7rem; line-height: 1.45; }
 .file-drop { display: flex; align-items: center; flex-wrap: wrap; gap: .55rem; margin: 1.25rem 0; padding: 1.4rem; border: 1.5px dashed #9bb5a7; border-radius: 14px; background: #f5faf6; }
 .file-drop input { margin-top: .65rem; }
 .file-drop input, .file-drop small { flex-basis: 100%; }
@@ -320,9 +326,9 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
 .csv-help { margin: .7rem 0 0; font-size: .76rem; line-height: 1.55; }
 .template-link { display: inline-flex; align-items: center; gap: .35rem; color: var(--forest-2); font-weight: 800; }
 .template-link svg, .import-check svg { width: 1rem; height: 1rem; }
-.import-complete { display: flex; align-items: center; gap: .8rem; margin-top: 1rem; padding: 1rem; border-radius: 12px; background: var(--mint-soft); }
+.import-complete { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; margin-top: 1rem; padding: 1rem; border-radius: 12px; background: var(--mint-soft); }
 .import-check { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 auto; border-radius: 50%; background: var(--forest); color: white; font-weight: 900; }
-.import-metrics { display: flex; gap: 1.5rem; margin: .4rem 0 .4rem auto; }
+.import-metrics { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: .4rem 0 .4rem auto; }
 .import-metrics div { min-width: 80px; text-align: center; }
 .import-metrics strong, .import-metrics span { display: block; }
 .import-metrics strong { color: var(--forest); font-size: 1.35rem; }
