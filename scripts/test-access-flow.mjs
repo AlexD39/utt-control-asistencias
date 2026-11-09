@@ -23,6 +23,7 @@ let studentId;
 let eventId;
 let firstSessionId;
 let secondSessionId;
+let generalSessionId;
 let temporaryEventId;
 const temporaryUserIds = [];
 
@@ -66,7 +67,10 @@ try {
     VALUES ($1, $2, 'Taller prueba uno', 'QA', $3, $4, 'workshop', TRUE) RETURNING id`, [eventId, `QA-A-${suffix}`, event.rows[0].starts_at, event.rows[0].ends_at]);
   const second = await database.query(`INSERT INTO sessions (event_id, code, name, room, starts_at, ends_at, session_type, requires_enrollment)
     VALUES ($1, $2, 'Taller prueba dos', 'QA', $3, $4, 'workshop', TRUE) RETURNING id`, [eventId, `QA-B-${suffix}`, event.rows[0].starts_at, event.rows[0].ends_at]);
+  const general = await database.query(`INSERT INTO sessions (event_id, code, name, room, starts_at, ends_at, session_type, requires_enrollment)
+    VALUES ($1, $2, 'Conferencia general prueba', 'QA', $3, $4, 'general', TRUE) RETURNING id`, [eventId, `QA-G-${suffix}`, event.rows[0].starts_at, event.rows[0].ends_at]);
   firstSessionId = first.rows[0].id; secondSessionId = second.rows[0].id;
+  generalSessionId = general.rows[0].id;
   await database.query("INSERT INTO session_students (session_id, student_id) VALUES ($1, $2)", [firstSessionId, studentId]);
 
   const notEnrolled = await scan(scanner.cookie, secondSessionId);
@@ -78,6 +82,19 @@ try {
   await database.query("INSERT INTO session_students (session_id, student_id) VALUES ($1, $2)", [secondSessionId, studentId]);
   const exhausted = await scan(scanner.cookie, secondSessionId);
   assert.equal(exhausted.status, 409); assert.equal(exhausted.body.result, "usage_exhausted");
+
+  const badgeBefore = await database.query("SELECT token_hash FROM badges WHERE event_id = $1 AND student_id = $2", [eventId, studentId]);
+  const configured = await fetch(`${baseUrl}/api/students/${studentId}/access`, {
+    method: "PATCH",
+    headers: { cookie: admin.cookie, "content-type": "application/json" },
+    body: JSON.stringify({ credentialType: "reusable", credentialUseLimit: null, workshopIds: [firstSessionId, secondSessionId, generalSessionId] }),
+  });
+  const configuredBody = await configured.json();
+  assert.equal(configured.status, 200, JSON.stringify(configuredBody));
+  const badgeAfter = await database.query("SELECT token_hash FROM badges WHERE event_id = $1 AND student_id = $2", [eventId, studentId]);
+  assert.equal(badgeAfter.rows[0].token_hash, badgeBefore.rows[0].token_hash);
+  const generalAccepted = await scan(scanner.cookie, generalSessionId);
+  assert.equal(generalAccepted.status, 201); assert.equal(generalAccepted.body.result, "accepted");
 
   const validCsv = `Matrícula,Nombre,Correo,Programa,Talleres,TipoCredencial,Usos\n${importEnrollment},Alumno CSV,,Sistemas,${`QA-A-${suffix}`},limitada,2`;
   const imported = await fetch(`${baseUrl}/api/students/import`, { method: "POST", headers: { cookie: admin.cookie, "content-type": "application/json" }, body: JSON.stringify({ eventId, content: validCsv }) });
@@ -94,14 +111,14 @@ try {
   assert.equal(invalid.status, 400);
   const rolledBack = await database.query("SELECT 1 FROM students WHERE enrollment = $1", [rollbackEnrollment]);
   assert.equal(rolledBack.rowCount, 0);
-  console.log("Accesos correctos: no inscrito · aceptado · duplicado sin consumo · usos agotados");
+  console.log("Accesos correctos: taller · sesión general · mismo QR · duplicado sin consumo · usos agotados");
   console.log("CSV correcto: política limitada · taller asignado · rollback ante clave inválida");
 } finally {
   if (eventId) {
     await database.query("DELETE FROM scan_attempts WHERE student_id = $1", [studentId]).catch(() => undefined);
     await database.query("DELETE FROM attendances WHERE student_id = $1", [studentId]).catch(() => undefined);
     await database.query("DELETE FROM students WHERE enrollment = ANY($1::text[])", [[enrollment, importEnrollment, rollbackEnrollment]]).catch(() => undefined);
-    await database.query("DELETE FROM sessions WHERE id = ANY($1::uuid[])", [[firstSessionId, secondSessionId].filter(Boolean)]).catch(() => undefined);
+    await database.query("DELETE FROM sessions WHERE id = ANY($1::uuid[])", [[firstSessionId, secondSessionId, generalSessionId].filter(Boolean)]).catch(() => undefined);
     if (temporaryEventId) await database.query("DELETE FROM events WHERE id = $1", [temporaryEventId]).catch(() => undefined);
   }
   if (temporaryUserIds.length) await database.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [temporaryUserIds]).catch(() => undefined);

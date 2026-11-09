@@ -40,16 +40,18 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       }
       const workshopIds = [...new Set(parsed.data.workshopIds)];
       if (workshopIds.length) {
-        const workshops = await client.query<{ id: string; capacity: number | null; enrolled: number }>(`SELECT se.id, se.capacity,
+        const activities = await client.query<{ id: string; capacity: number | null; enrolled: number }>(`SELECT se.id, se.capacity,
           (SELECT COUNT(*)::int FROM session_students ss WHERE ss.session_id = se.id AND ss.student_id <> $3) enrolled
           FROM sessions se WHERE se.id = ANY($1::uuid[]) AND se.event_id = $2
-          AND se.session_type = 'workshop' AND se.active ORDER BY se.id FOR UPDATE`, [workshopIds, event.id, studentId]);
-        if (workshops.rowCount !== workshopIds.length) throw new Error("INVALID_WORKSHOP");
-        if (workshops.rows.some((workshop) => workshop.capacity !== null && workshop.enrolled >= workshop.capacity)) throw new Error("WORKSHOP_FULL");
+          AND se.active AND (se.session_type = 'workshop' OR (se.session_type = 'general' AND se.requires_enrollment))
+          ORDER BY se.id FOR UPDATE`, [workshopIds, event.id, studentId]);
+        if (activities.rowCount !== workshopIds.length) throw new Error("INVALID_WORKSHOP");
+        if (activities.rows.some((activity) => activity.capacity !== null && activity.enrolled >= activity.capacity)) throw new Error("WORKSHOP_FULL");
       }
       await client.query("UPDATE event_students SET credential_use_limit = $1 WHERE event_id = $2 AND student_id = $3", [useLimit, event.id, studentId]);
       await client.query(`DELETE FROM session_students ss USING sessions se
-        WHERE ss.session_id = se.id AND se.event_id = $1 AND se.session_type = 'workshop'
+        WHERE ss.session_id = se.id AND se.event_id = $1
+        AND (se.session_type = 'workshop' OR (se.session_type = 'general' AND se.requires_enrollment))
         AND se.active AND ss.student_id = $2`, [event.id, studentId]);
       if (workshopIds.length) {
         await client.query("INSERT INTO session_students (session_id, student_id) SELECT UNNEST($1::uuid[]), $2", [workshopIds, studentId]);

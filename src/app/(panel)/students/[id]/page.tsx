@@ -14,7 +14,7 @@ import { formatDate, initials } from "@/lib/format";
 type Student = { id: string; name: string; enrollment: string; email: string | null; program: string; active: boolean; badge_active: boolean | null; issued_at: Date | null; nfc_configured_at: Date | null; nfc_verified_at: Date | null };
 type Attendance = { id: string; session_name: string; room: string; scanned_at: Date; source: string };
 type StudentAccess = { event_id: string; event_name: string; credential_use_limit: number | null; uses_consumed: number };
-type Workshop = { id: string; code: string; name: string; capacity: number | null; enrolled: number; assigned: boolean };
+type Activity = { id: string; code: string; name: string; session_type: "workshop" | "general"; capacity: number | null; enrolled: number; assigned: boolean };
 type StudentEventRow = { id: string; name: string; venue: string; status: StudentEventMembership["status"]; attendance_count: number };
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -52,11 +52,12 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
   ]);
   const memberships: StudentEventMembership[] = membershipResult.rows.map((event) => ({ id: event.id, name: event.name, venue: event.venue, status: event.status, attendanceCount: event.attendance_count }));
   const availableActiveEvents: StudentEventMembership[] = availableEventResult.rows.map((event) => ({ id: event.id, name: event.name, venue: event.venue, status: event.status, attendanceCount: 0 }));
-  const workshops = access ? await query<Workshop>(`SELECT se.id, se.code, se.name, se.capacity,
+  const activities = access ? await query<Activity>(`SELECT se.id, se.code, se.name, se.session_type, se.capacity,
     COUNT(ss.student_id)::int enrolled,
     COALESCE(BOOL_OR(ss.student_id = $2), FALSE) assigned
     FROM sessions se LEFT JOIN session_students ss ON ss.session_id = se.id
-    WHERE se.event_id = $1 AND se.session_type = 'workshop' AND se.active
+    WHERE se.event_id = $1 AND se.active
+      AND (se.session_type = 'workshop' OR (se.session_type = 'general' AND se.requires_enrollment))
     GROUP BY se.id ORDER BY se.starts_at`, [access.event_id, id]) : { rows: [] };
   const deliveryResult = access && student.email ? await query<{ status: StudentEmailDelivery["status"]; recipient: string; sent_at: Date | null; last_error: string | null }>(`SELECT d.status::text, d.recipient, d.sent_at, d.last_error
     FROM credential_email_deliveries d JOIN badges b ON b.id = d.badge_id
@@ -75,7 +76,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
     <section className="student-profile card"><div className="profile-main"><span className="profile-photo">{initials(student.name)}</span><div><span className={student.active ? "pill pill-success" : "pill"}>{student.active ? "ALUMNO ACTIVO" : "INACTIVO"}</span><h2>{student.name}</h2><p>{student.email ?? "Sin correo registrado"}</p><p className="student-current-event"><CalendarDays aria-hidden />{access?.event_name ?? "Sin congreso activo"}</p></div></div><div className="profile-stats"><div><strong>{attendanceResult.rows.length}</strong><span>asistencias</span></div><div><strong>{student.nfc_verified_at ? "NFC listo" : student.badge_active ? "QR activa" : "Sin activar"}</strong><span>credencial</span></div><div><strong>{student.issued_at ? formatDate(student.issued_at, false) : "—"}</strong><span>última emisión</span></div></div></section>
     {user.role !== "viewer" && <StudentEditForm student={student} />}
     {user.role !== "viewer" && <StudentEventManager studentId={student.id} memberships={memberships} availableActiveEvents={availableActiveEvents} />}
-    {user.role !== "viewer" && access && <StudentAccessManager studentId={student.id} eventName={access.event_name} useLimit={access.credential_use_limit} usesConsumed={access.uses_consumed} workshops={workshops.rows} />}
+    {user.role !== "viewer" && access && <StudentAccessManager studentId={student.id} eventName={access.event_name} useLimit={access.credential_use_limit} usesConsumed={access.uses_consumed} activities={activities.rows} />}
     {user.role !== "viewer" && access && <StudentCredentialEmail studentId={student.id} email={student.email} providerConfigured={resendConfiguration().configured} initialDelivery={initialDelivery} />}
     {user.role !== "viewer" && <ReissueCredential student={{ id: student.id, name: student.name, enrollment: student.enrollment, program: student.program }} nfcVerifiedAt={student.nfc_verified_at?.toISOString()} credentialUseLimit={access?.credential_use_limit} />}
     <section className="card table-card student-history"><div className="table-toolbar"><strong>Historial de asistencia</strong><span className="pill">{attendanceResult.rows.length} REGISTROS</span></div><div className="table-wrap"><table><thead><tr><th>Sesión</th><th>Ubicación</th><th>Fecha</th><th>Método</th></tr></thead><tbody>{attendanceResult.rows.length === 0 ? <tr><td className="empty-cell" colSpan={4}>Este alumno todavía no registra asistencias.</td></tr> : attendanceResult.rows.map((row) => <tr key={row.id}><td><strong>{row.session_name}</strong></td><td>{row.room}</td><td>{formatDate(row.scanned_at)}</td><td><span className="source-tag">{row.source.toUpperCase()}</span></td></tr>)}</tbody></table></div></section>
