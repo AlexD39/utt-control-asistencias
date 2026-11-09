@@ -49,7 +49,7 @@ try {
     VALUES
       ($1, $2, $3, 'QA-1', NOW(), NOW() + INTERVAL '1 hour', 'workshop', 500, TRUE),
       ($1, $4, $5, 'QA-2', NOW(), NOW() + INTERVAL '1 hour', 'workshop', 500, TRUE),
-      ($1, $6, $7, 'QA-3', NOW(), NOW() + INTERVAL '1 hour', 'workshop', 500, TRUE),
+      ($1, $6, $7, 'QA-3', NOW(), NOW() + INTERVAL '1 hour', 'general', 500, TRUE),
       ($1, $8, $9, 'QA-4', NOW(), NOW() + INTERVAL '1 hour', 'workshop', 500, TRUE)
     RETURNING id, code, name`, [
     eventId,

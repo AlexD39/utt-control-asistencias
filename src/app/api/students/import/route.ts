@@ -79,7 +79,7 @@ export async function POST(request: Request) {
   const nameIndex = column("nombre", "name", "nombrecompleto");
   const emailIndex = column("correo", "email", "correoinstitucional");
   const programIndex = column("programa", "carrera", "program");
-  const workshopsIndex = column("talleres", "workshops", "workshopcodes", "taller");
+  const workshopsIndex = column("talleres", "workshops", "workshopcodes", "taller", "actividades", "activities", "actividad");
   const credentialTypeIndex = column("tipocredencial", "credentialtype", "tipodecredencial");
   const usesIndex = column("usos", "uses", "limiteusos", "maxusos");
   if (enrollmentIndex < 0 || nameIndex < 0 || programIndex < 0) return NextResponse.json({ error: "Se requieren las columnas Matrícula, Nombre y Programa" }, { status: 400 });
@@ -122,7 +122,9 @@ export async function POST(request: Request) {
       const requestedRefs = [...new Set(students.flatMap((student) => student.workshopRefs))];
       const needsWorkshops = requestedRefs.length > 0 || imported.sharedWorkshopIds.length > 0;
       const workshopResult = needsWorkshops ? await client.query<WorkshopRow>(`SELECT id, code, name, capacity FROM sessions
-        WHERE event_id = $1 AND session_type = 'workshop' AND active ORDER BY id FOR UPDATE`, [eventId]) : { rows: [] as WorkshopRow[] };
+        WHERE event_id = $1 AND active
+          AND (session_type = 'workshop' OR (session_type = 'general' AND requires_enrollment))
+        ORDER BY id FOR UPDATE`, [eventId]) : { rows: [] as WorkshopRow[] };
       const workshops = new Map(workshopResult.rows.map((workshop) => [workshop.id, workshop]));
       const byCode = new Map(workshopResult.rows.map((workshop) => [normalizedValue(workshop.code), workshop]));
       const byName = new Map<string, WorkshopRow | null>();
