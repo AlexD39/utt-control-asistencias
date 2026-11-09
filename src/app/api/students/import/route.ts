@@ -24,7 +24,13 @@ type ImportStudent = z.infer<typeof baseRowSchema> & {
 };
 
 function normalizedValue(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[´‘’ʼ`]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 async function readImportRequest(request: Request) {
@@ -214,6 +220,7 @@ export async function POST(request: Request) {
           WHERE s.id = ANY($2::uuid[]) AND s.email IS NOT NULL AND BTRIM(s.email) <> '' AND b.token_ciphertext IS NOT NULL
           ON CONFLICT (badge_id, recipient) DO UPDATE SET
             status = CASE WHEN credential_email_deliveries.status = 'sent' THEN 'sent'::credential_email_status ELSE 'queued'::credential_email_status END,
+            attempts = CASE WHEN credential_email_deliveries.status = 'sent' THEN credential_email_deliveries.attempts ELSE 0 END,
             next_attempt_at = CASE WHEN credential_email_deliveries.status = 'sent' THEN credential_email_deliveries.next_attempt_at ELSE NOW() END,
             last_error = CASE WHEN credential_email_deliveries.status = 'sent' THEN credential_email_deliveries.last_error ELSE NULL END,
             updated_at = NOW() RETURNING status`, [eventId, [...studentIds.values()]]);

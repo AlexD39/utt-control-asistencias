@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   if (!event) return NextResponse.json({ error: "No existe un congreso activo" }, { status: 409 });
   const body = await request.json().catch(() => ({})) as { action?: string };
   if (body.action === "retry") {
-    const result = await query(`UPDATE credential_email_deliveries SET status = 'queued', next_attempt_at = NOW(), last_error = NULL, updated_at = NOW()
+    const result = await query(`UPDATE credential_email_deliveries SET status = 'queued', attempts = 0, next_attempt_at = NOW(), last_error = NULL, updated_at = NOW()
       WHERE event_id = $1 AND status = 'failed' RETURNING id`, [event.id]);
     return NextResponse.json({ queued: result.rowCount ?? 0 });
   }
@@ -52,6 +52,7 @@ export async function POST(request: Request) {
       WHERE es.event_id = $1 AND s.email IS NOT NULL AND BTRIM(s.email) <> '' AND b.token_ciphertext IS NOT NULL
       ON CONFLICT (badge_id, recipient) DO UPDATE SET
         status = CASE WHEN credential_email_deliveries.status = 'sent' THEN 'sent'::credential_email_status ELSE 'queued'::credential_email_status END,
+        attempts = CASE WHEN credential_email_deliveries.status = 'sent' THEN credential_email_deliveries.attempts ELSE 0 END,
         next_attempt_at = CASE WHEN credential_email_deliveries.status = 'sent' THEN credential_email_deliveries.next_attempt_at ELSE NOW() END,
         last_error = CASE WHEN credential_email_deliveries.status = 'sent' THEN credential_email_deliveries.last_error ELSE NULL END,
         updated_at = NOW()

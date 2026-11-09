@@ -56,10 +56,10 @@ try {
     `QA-COMUN-1-${suffix}`, `Taller común uno ${suffix}`,
     `QA-COMUN-2-${suffix}`, `Taller común dos ${suffix}`,
     `QA-COMUN-3-${suffix}`, `Taller común tres ${suffix}`,
-    `QA-INDIVIDUAL-${suffix}`, `Taller individual ${suffix}`
+    `QA-INDIVIDUAL-${suffix}`, `8D's ${suffix}`
   ]);
   const sharedWorkshopIds = workshops.rows.filter((row) => row.code.includes("COMUN")).map((row) => row.id);
-  const individualWorkshopName = workshops.rows.find((row) => row.code.includes("INDIVIDUAL")).name;
+  const individualWorkshopName = workshops.rows.find((row) => row.code.includes("INDIVIDUAL")).name.replace("'", "´");
 
   const header = "Matrícula,Nombre,Correo,Programa,Talleres,TipoCredencial,Usos";
   const records = Array.from({ length: 400 }, (_, index) => {
