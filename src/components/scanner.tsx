@@ -62,11 +62,22 @@ export function Scanner() {
     setLoading(true);
     setResult(null);
     try {
-      const response = await fetch("/api/scans", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ badgeCode: badgeCode.trim(), sessionId, source, deviceTime: new Date().toISOString() })
-      });
+      const payload = JSON.stringify({ badgeCode: badgeCode.trim(), sessionId, source, deviceTime: new Date().toISOString() });
+      let response: Response | null = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 12_000);
+        try {
+          response = await fetch("/api/scans", { method: "POST", headers: { "content-type": "application/json" }, body: payload, signal: controller.signal });
+          if (response.status < 500) break;
+        } catch {
+          if (attempt === 2) throw new Error("network_error");
+        } finally {
+          window.clearTimeout(timeout);
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 500 * (attempt + 1)));
+      }
+      if (!response) throw new Error("network_error");
       const data = await response.json();
       setResult(data);
       if (data.result === "accepted" || data.result === "duplicate") {
@@ -75,7 +86,7 @@ export function Scanner() {
       }
       if (navigator.vibrate) navigator.vibrate(data.result === "accepted" ? 100 : [100, 70, 100]);
     } catch {
-      setResult({ result: "error", message: "No fue posible comunicarse con el servidor." });
+      setResult({ result: "error", message: "La conexión está inestable. Conservamos el código para que puedas reintentar sin perderlo." });
     } finally {
       setLoading(false);
       processingRef.current = false;

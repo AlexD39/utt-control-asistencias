@@ -16,10 +16,10 @@ function readEnv(path) {
 }
 
 const expectations = {
-  super_admin: { "/dashboard": 200, "/scanner": 200, "/events": 200, "/students": 200, "/attendances": 200, "/users": 200, "/api/sessions": 200 },
-  event_admin: { "/dashboard": 200, "/scanner": 200, "/events": 200, "/students": 200, "/attendances": 200, "/users": 200, "/api/sessions": 200 },
-  scanner: { "/dashboard": 200, "/scanner": 200, "/events": 307, "/students": 307, "/attendances": 307, "/users": 307, "/api/sessions": 200 },
-  viewer: { "/dashboard": 200, "/scanner": 307, "/events": 200, "/students": 200, "/attendances": 200, "/users": 307, "/api/sessions": 403 }
+  super_admin: { "/dashboard": 200, "/scanner": 200, "/events": 200, "/students": 200, "/attendances": 200, "/raffle": 200, "/users": 200, "/api/sessions": 200 },
+  event_admin: { "/dashboard": 200, "/scanner": 200, "/events": 200, "/students": 200, "/attendances": 200, "/raffle": 200, "/users": 200, "/api/sessions": 200 },
+  scanner: { "/dashboard": 200, "/scanner": 200, "/events": 307, "/students": 307, "/attendances": 307, "/raffle": 307, "/users": 307, "/api/sessions": 200 },
+  viewer: { "/dashboard": 200, "/scanner": 307, "/events": 200, "/students": 200, "/attendances": 200, "/raffle": 307, "/users": 307, "/api/sessions": 403 }
 };
 
 const env = readEnv(new URL("../.env.local", import.meta.url));

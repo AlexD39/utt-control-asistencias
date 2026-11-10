@@ -12,6 +12,7 @@
     "test:nfc": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/web-nfc.test.mjs",
     "test:nfc:integration": "node scripts/test-nfc-flow.mjs",
     "test:access:integration": "node scripts/test-access-flow.mjs",
+    "test:scan:load": "node scripts/test-scan-load.mjs",
     "test:bulk:integration": "node scripts/test-bulk-import.mjs",
     "test:email:integration": "node scripts/test-email-flow.mjs",
     "test:e2e": "playwright test",

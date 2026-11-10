@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, ClipboardCheck, GraduationCap, LayoutDashboard, ScanLine, UsersRound, type LucideIcon } from "lucide-react";
+import { CalendarDays, ClipboardCheck, GraduationCap, LayoutDashboard, ScanLine, Trophy, UsersRound, type LucideIcon } from "lucide-react";
 import type { Role } from "@/lib/auth";
 import { InstitutionBrand } from "@/components/institution-brand";
 import { LogoutButton } from "@/components/logout-button";
@@ -12,6 +12,7 @@ const items = [
   { href: "/events", label: "Congresos", icon: CalendarDays, roles: ["super_admin", "event_admin", "viewer"] },
   { href: "/scanner", label: "Escanear", icon: ScanLine, roles: ["super_admin", "event_admin", "scanner"] },
   { href: "/attendances", label: "Asistencias", icon: ClipboardCheck, roles: ["super_admin", "event_admin", "viewer"] },
+  { href: "/raffle", label: "Rifa", icon: Trophy, roles: ["super_admin", "event_admin"] },
   { href: "/students", label: "Alumnos", icon: GraduationCap, roles: ["super_admin", "event_admin", "viewer"] },
   { href: "/users", label: "Equipo y permisos", icon: UsersRound, roles: ["super_admin", "event_admin"] }
 ] satisfies Array<{ href: string; label: string; icon: LucideIcon; roles: Role[] }>;

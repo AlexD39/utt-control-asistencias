@@ -416,6 +416,32 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
 .email-warning svg { width: 18px; flex: 0 0 auto; }
 .email-warning p { margin: 0; font-size: .76rem; }
 
+.raffle-selector { margin-bottom: 1rem; }
+.raffle-selector form { display: grid; grid-template-columns: minmax(280px, 1fr) auto; align-items: end; gap: .8rem; }
+.raffle-selector p { margin: 1rem 0 0; font-size: .78rem; }
+.raffle-stage { position: relative; min-height: 540px; padding: clamp(1.2rem, 4vw, 3rem); border-radius: 22px; overflow: hidden; color: white; background: radial-gradient(circle at 50% 10%, rgba(7, 174, 139, .72), transparent 30%), linear-gradient(145deg, #153f52, #1d576c 62%, #126977); box-shadow: 0 24px 70px rgba(18, 55, 68, .22); }
+.raffle-stage.has-winner { background: radial-gradient(circle at 50% 16%, rgba(242, 188, 46, .42), transparent 30%), linear-gradient(145deg, #153f52, #1d576c 62%, #126977); }
+.raffle-status { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: #d8ebe4; font-size: .78rem; }
+.raffle-drum { position: relative; z-index: 2; display: grid; place-items: center; min-height: 310px; padding: 2rem 1rem; text-align: center; }
+.raffle-icon { display: grid; place-items: center; width: 72px; height: 72px; margin-bottom: 1.2rem; border-radius: 50%; background: var(--mint); color: var(--forest); box-shadow: 0 0 0 12px rgba(255,255,255,.07); }
+.raffle-icon svg { width: 34px; height: 34px; }
+.raffle-drum p { margin-bottom: .6rem; color: #c5ddd4; font-size: .85rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.raffle-drum h2 { max-width: 900px; margin: 0; color: white; font-size: clamp(2.2rem, 6vw, 5.5rem); line-height: 1.03; text-wrap: balance; }
+.raffle-drum small { margin-top: 1rem; color: #d5e8e1; font-size: clamp(.85rem, 2vw, 1.15rem); font-weight: 700; }
+.raffle-actions { position: relative; z-index: 2; display: flex; justify-content: center; gap: .7rem; }
+.raffle-draw { min-width: 210px; background: var(--mint); color: var(--forest); }
+.raffle-winners { position: relative; z-index: 2; max-width: 760px; margin: 2rem auto 0; padding: 1.2rem; border: 1px solid rgba(255,255,255,.16); border-radius: 16px; background: rgba(6, 30, 38, .3); backdrop-filter: blur(8px); }
+.raffle-winners h3 { margin: 0 0 .8rem; }
+.raffle-winners ol { display: grid; gap: .45rem; margin: 0; padding-left: 1.5rem; }
+.raffle-winners li { padding: .55rem .7rem; border-radius: 9px; background: rgba(255,255,255,.08); }
+.raffle-winners li span, .raffle-winners li small { display: block; }
+.raffle-winners li span { font-weight: 800; }
+.raffle-winners li small, .raffle-winners p { color: #c5ddd4; }
+.raffle-winners p { margin: .8rem 0 0; font-size: .7rem; }
+.confetti { position: absolute; z-index: 1; inset: 0; pointer-events: none; }
+.confetti i { position: absolute; top: -8%; left: var(--x); width: 9px; height: 16px; border-radius: 2px; background: hsl(var(--hue) 85% 60%); animation: raffle-confetti 2.8s ease-out both; animation-delay: var(--delay); transform: rotate(var(--rotation)); }
+@keyframes raffle-confetti { 0% { opacity: 0; translate: 0 -20px; } 12% { opacity: 1; } 100% { opacity: .15; translate: var(--drift) 620px; rotate: 540deg; } }
+
 @media (max-width: 980px) {
   .login-shell { grid-template-columns: 1fr; }
   .login-copy { min-height: 42vh; padding: 2rem; }
@@ -482,6 +508,14 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
   .modal-surface { max-height: 94vh; border-radius: 14px; }
   .modal-head, .modal-body { padding: 1rem; }
   .email-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .raffle-selector form { grid-template-columns: 1fr; }
+  .raffle-selector .button { width: 100%; }
+  .raffle-stage { min-height: 500px; padding: 1rem; border-radius: 16px; }
+  .raffle-status { align-items: flex-start; flex-direction: column; }
+  .raffle-drum { min-height: 290px; padding: 1.5rem .4rem; }
+  .raffle-drum h2 { font-size: clamp(2rem, 11vw, 3.4rem); }
+  .raffle-actions { display: grid; grid-template-columns: 1fr; }
+  .raffle-actions .button { width: 100%; min-height: 48px; }
   .student-form, .credential-workspace { padding: 1rem; }
   .student-form { border-radius: 14px; box-shadow: none; }
   .form-section-head { gap: .75rem; padding-bottom: 1rem; }
