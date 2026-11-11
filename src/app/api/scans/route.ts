@@ -85,14 +85,14 @@ export async function POST(request: Request) {
     const remainingBefore = access.credential_use_limit === null ? null : Math.max(0, access.credential_use_limit - usesConsumed);
     const existingAttendance = await client.query("SELECT 1 FROM attendances WHERE session_id = $1 AND student_id = $2", [session.id, badge.student_id]);
     if (existingAttendance.rows[0]) {
-      await client.query(`INSERT INTO attendances
-        (event_id, session_id, student_id, badge_id, scanned_by, device_time, source)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [session.event_id, session.id, badge.student_id, badge.badge_id, user.id, parsed.data.deviceTime ?? null, parsed.data.source]);
-      await client.query(`INSERT INTO scan_attempts
+      const confirmationAttempt = await client.query<{ id: string }>(`INSERT INTO scan_attempts
         (event_id, session_id, student_id, badge_id, scanned_by, result, source, device_time)
-        VALUES ($1, $2, $3, $4, $5, 'duplicate', $6, $7)`,
+        VALUES ($1, $2, $3, $4, $5, 'duplicate', $6, $7) RETURNING id`,
         [session.event_id, session.id, badge.student_id, badge.badge_id, user.id, parsed.data.source, parsed.data.deviceTime ?? null]);
+      await client.query(`INSERT INTO attendances
+        (event_id, session_id, student_id, badge_id, scanned_by, device_time, source, scan_attempt_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [session.event_id, session.id, badge.student_id, badge.badge_id, user.id, parsed.data.deviceTime ?? null, parsed.data.source, confirmationAttempt.rows[0].id]);
       return { status: 201, body: { result: "confirmation", message: "Permanencia confirmada; se guardó un nuevo registro sin consumir otro uso", student: { name: badge.name, enrollment: badge.enrollment, program: badge.program }, session: session.name, credential: { reusable: access.credential_use_limit === null, maxUses: access.credential_use_limit, usesConsumed, remainingUses: remainingBefore } } };
     }
 

@@ -81,21 +81,29 @@ try {
   assert.equal(accepted.status, 201); assert.equal(accepted.body.result, "accepted"); assert.equal(accepted.body.credential.remainingUses, 0);
   if (testLegacyMigration) {
     const beforeMigration = await database.query("SELECT id FROM attendances WHERE session_id = $1 AND student_id = $2", [firstSessionId, studentId]);
-    const migration = fs.readFileSync(new URL("../database/migrations/007_attendance_confirmations.sql", import.meta.url), "utf8");
-    await database.query(migration);
+    await database.query(`INSERT INTO scan_attempts
+      (event_id, session_id, student_id, badge_id, scanned_by, result, source, device_time, created_at)
+      SELECT $1, $2, $3, b.id, $4, 'duplicate', 'qr', a.scanned_at + INTERVAL '1 millisecond', a.scanned_at + INTERVAL '1 millisecond'
+      FROM badges b JOIN attendances a ON a.event_id = b.event_id AND a.student_id = b.student_id
+      WHERE b.event_id = $1 AND b.student_id = $3 AND a.session_id = $2`, [eventId, firstSessionId, studentId, scanner.user.id]);
+    const confirmationMigration = fs.readFileSync(new URL("../database/migrations/007_attendance_confirmations.sql", import.meta.url), "utf8");
+    const backfillMigration = fs.readFileSync(new URL("../database/migrations/008_backfill_attendance_confirmations.sql", import.meta.url), "utf8");
+    await database.query(confirmationMigration);
+    await database.query(backfillMigration);
     const afterMigration = await database.query("SELECT id FROM attendances WHERE session_id = $1 AND student_id = $2", [firstSessionId, studentId]);
-    assert.equal(afterMigration.rows[0].id, beforeMigration.rows[0].id);
+    assert.ok(afterMigration.rows.some((row) => row.id === beforeMigration.rows[0].id));
+    assert.equal(afterMigration.rowCount, 2);
   }
   const confirmation = await scan(scanner.cookie, firstSessionId);
   assert.equal(confirmation.status, 201); assert.equal(confirmation.body.result, "confirmation"); assert.equal(confirmation.body.credential.usesConsumed, 1);
   const confirmedRows = await database.query("SELECT COUNT(*)::int total FROM attendances WHERE session_id = $1 AND student_id = $2", [firstSessionId, studentId]);
-  assert.equal(confirmedRows.rows[0].total, 2);
+  assert.equal(confirmedRows.rows[0].total, testLegacyMigration ? 3 : 2);
   const attendancePage = await fetch(`${baseUrl}/attendances`, { headers: { cookie: admin.cookie } });
   const attendanceHtml = await attendancePage.text();
   assert.equal(attendancePage.status, 200); assert.match(attendanceHtml, /ASISTENCIA INICIAL/); assert.match(attendanceHtml, /CONFIRMACIÓN 1/);
   const exported = await fetch(`${baseUrl}/api/students/export?q=${encodeURIComponent(enrollment)}`, { headers: { cookie: admin.cookie } });
   const exportedCsv = await exported.text();
-  assert.equal(exported.status, 200); assert.match(exportedCsv, /,"2"\r?\n?$/);
+  assert.equal(exported.status, 200); assert.match(exportedCsv, new RegExp(`,"${testLegacyMigration ? 3 : 2}"\\r?\\n?$`));
   await database.query("INSERT INTO session_students (session_id, student_id) VALUES ($1, $2)", [secondSessionId, studentId]);
   const exhausted = await scan(scanner.cookie, secondSessionId);
   assert.equal(exhausted.status, 409); assert.equal(exhausted.body.result, "usage_exhausted");
