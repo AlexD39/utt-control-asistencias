@@ -102,8 +102,7 @@ CREATE TABLE attendances (
   scanned_by UUID NOT NULL REFERENCES users(id),
   scanned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   device_time TIMESTAMPTZ,
-  source TEXT NOT NULL CHECK (source IN ('qr', 'nfc', 'manual')),
-  UNIQUE (session_id, student_id)
+  source TEXT NOT NULL CHECK (source IN ('qr', 'nfc', 'manual'))
 );
 
 CREATE TABLE scan_attempts (
@@ -142,6 +141,7 @@ CREATE INDEX idx_sessions_event ON sessions(event_id);
 CREATE INDEX idx_session_students_student ON session_students(student_id);
 CREATE INDEX idx_attendances_event_time ON attendances(event_id, scanned_at DESC);
 CREATE INDEX idx_attendances_session ON attendances(session_id);
+CREATE INDEX idx_attendances_session_student_time ON attendances(session_id, student_id, scanned_at);
 CREATE INDEX idx_scan_attempts_time ON scan_attempts(created_at DESC);
 CREATE INDEX idx_students_name ON students(name);
 CREATE INDEX credential_email_deliveries_queue_idx ON credential_email_deliveries(status, next_attempt_at, created_at);

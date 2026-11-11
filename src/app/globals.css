@@ -153,6 +153,7 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
 .empty-cell { padding: 2.5rem; color: var(--muted); text-align: center; }
 .person-cell { display: flex; align-items: center; gap: .7rem; min-width: 250px; }
 .source-tag { color: var(--forest-2); background: var(--mint-soft); padding: .3rem .5rem; border-radius: 6px; font-size: .65rem; font-weight: 800; }
+.attendance-confirmation { color: var(--warning); background: var(--warning-soft); white-space: nowrap; }
 .role-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1rem; }
 .role-card { padding: 1.2rem; background: #eaf0ec; border-radius: 13px; }
 .role-card p { margin: .35rem 0 0; font-size: .75rem; line-height: 1.5; }

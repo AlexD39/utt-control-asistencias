@@ -32,7 +32,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
   const student = studentResult.rows[0];
   if (!student) notFound();
   const accessResult = await query<StudentAccess>(`SELECT e.id event_id, e.name event_name, es.credential_use_limit,
-    (SELECT COUNT(*)::int FROM attendances a JOIN sessions se ON se.id = a.session_id
+    (SELECT COUNT(DISTINCT a.session_id)::int FROM attendances a JOIN sessions se ON se.id = a.session_id
       WHERE a.event_id = e.id AND a.student_id = es.student_id AND se.consumes_credential_use) uses_consumed
     FROM event_students es JOIN events e ON e.id = es.event_id
     WHERE es.student_id = $1 AND e.status = 'active' ORDER BY e.starts_at DESC LIMIT 1`, [id]);

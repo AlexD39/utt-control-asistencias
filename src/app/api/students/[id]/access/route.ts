@@ -33,7 +33,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       await client.query("SELECT 1 FROM event_students WHERE event_id = $1 AND student_id = $2 FOR UPDATE", [event.id, studentId]);
       const useLimit = parsed.data.credentialType === "limited" ? parsed.data.credentialUseLimit : null;
       if (useLimit !== null) {
-        const consumed = await client.query<{ total: number }>(`SELECT COUNT(*)::int total FROM attendances a
+        const consumed = await client.query<{ total: number }>(`SELECT COUNT(DISTINCT a.session_id)::int total FROM attendances a
           JOIN sessions se ON se.id = a.session_id WHERE a.event_id = $1 AND a.student_id = $2
           AND se.consumes_credential_use`, [event.id, studentId]);
         if ((consumed.rows[0]?.total ?? 0) > useLimit) throw new Error("LIMIT_BELOW_USAGE");

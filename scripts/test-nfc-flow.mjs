@@ -65,7 +65,7 @@ try {
     body: JSON.stringify({ badgeCode, sessionId: selectedSession.id, source: "nfc", deviceTime })
   });
   const scan = await scanResponse.json();
-  if (!scanResponse.ok || !["accepted", "duplicate"].includes(scan.result)) {
+  if (!scanResponse.ok || !["accepted", "confirmation", "duplicate"].includes(scan.result)) {
     throw new Error(`La prueba de integración NFC falló (${scanResponse.status}): ${scan.message ?? scan.error}`);
   }
 

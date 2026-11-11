@@ -80,7 +80,7 @@ export function Scanner() {
       if (!response) throw new Error("network_error");
       const data = await response.json();
       setResult(data);
-      if (data.result === "accepted" || data.result === "duplicate") {
+      if (data.result === "accepted" || data.result === "confirmation" || data.result === "duplicate") {
         setCode("");
         if (source === "nfc") stopNfc();
       }
@@ -219,14 +219,18 @@ export function Scanner() {
     await startCamera();
   }
 
-  const resultClass = result?.result === "accepted" ? "success" : result?.result === "duplicate" ? "warning" : "error";
+  const resultClass = result?.result === "accepted" || result?.result === "confirmation" ? "success" : result?.result === "duplicate" ? "warning" : "error";
   const resultTitle = result?.result === "accepted"
     ? "Registro confirmado"
+    : result?.result === "confirmation"
+      ? "Permanencia confirmada"
     : result?.result === "duplicate"
       ? "Asistencia ya registrada"
       : result?.message;
   const resultHelp = result?.result === "accepted"
     ? "La asistencia se guardó correctamente. Puedes continuar con el siguiente alumno."
+    : result?.result === "confirmation"
+      ? "Se guardó una nueva confirmación con esta hora y no se consumió otro uso de la credencial."
     : result?.result === "duplicate"
       ? "La credencial sigue siendo válida y no se consumió otro uso."
       : result?.result === "not_enrolled"
@@ -246,7 +250,7 @@ export function Scanner() {
       <form onSubmit={submit} className="manual-form"><input value={code} onChange={(event) => setCode(event.target.value)} placeholder="Código del gafete" autoComplete="off" /><button className="button button-primary" disabled={loading || !sessionId}>{loading ? "Validando…" : "Registrar"}</button></form>
     </section>
     <section ref={resultRef} className={`scan-result ${result ? resultClass : "idle"}`} aria-live="polite">
-      {!result ? <><span className="result-icon"><ScanLine aria-hidden /></span><h2>Listo para escanear</h2><p>Selecciona una actividad y usa la cámara para comenzar.</p></> : <><span className="result-icon">{resultClass === "success" ? <CheckCircle2 aria-hidden /> : resultClass === "warning" ? <AlertTriangle aria-hidden /> : <CircleX aria-hidden />}</span><p className="eyebrow">{result.result === "accepted" ? "ASISTENCIA GUARDADA" : result.result === "duplicate" ? "ACCESO RECONOCIDO" : "ACCESO NO AUTORIZADO"}</p><h2>{resultTitle}</h2><p className="result-help">{resultHelp}</p>{result.student && <div className="student-result"><strong>{result.student.name}</strong><span>{result.student.enrollment} · {result.student.program}</span>{result.session && <span>{result.session}</span>}{result.credential && <span className="credential-remaining">{result.credential.reusable ? "Credencial reutilizable" : `${result.credential.remainingUses} de ${result.credential.maxUses} usos disponibles`}</span>}</div>}<button type="button" className="button result-next" onClick={scanNext}><ScanLine aria-hidden />Escanear siguiente</button></>}
+      {!result ? <><span className="result-icon"><ScanLine aria-hidden /></span><h2>Listo para escanear</h2><p>Selecciona una actividad y usa la cámara para comenzar.</p></> : <><span className="result-icon">{resultClass === "success" ? <CheckCircle2 aria-hidden /> : resultClass === "warning" ? <AlertTriangle aria-hidden /> : <CircleX aria-hidden />}</span><p className="eyebrow">{result.result === "accepted" ? "ASISTENCIA GUARDADA" : result.result === "confirmation" ? "PERMANENCIA GUARDADA" : result.result === "duplicate" ? "ACCESO RECONOCIDO" : "ACCESO NO AUTORIZADO"}</p><h2>{resultTitle}</h2><p className="result-help">{resultHelp}</p>{result.student && <div className="student-result"><strong>{result.student.name}</strong><span>{result.student.enrollment} · {result.student.program}</span>{result.session && <span>{result.session}</span>}{result.credential && <span className="credential-remaining">{result.credential.reusable ? "Credencial reutilizable" : `${result.credential.remainingUses} de ${result.credential.maxUses} usos disponibles`}</span>}</div>}<button type="button" className="button result-next" onClick={scanNext}><ScanLine aria-hidden />Escanear siguiente</button></>}
     </section>
   </div>;
 }

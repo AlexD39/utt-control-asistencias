@@ -16,7 +16,7 @@ type Participant = { id: string; name: string; enrollment: string; program: stri
 export default async function RafflePage({ searchParams }: { searchParams: Promise<{ session?: string }> }) {
   const user = await requireUser(["super_admin", "event_admin"]);
   const sessions = await query<SessionOption>(`SELECT s.id, s.name, s.room, s.session_type, e.name event_name,
-    COUNT(a.id)::int attendees
+    COUNT(DISTINCT a.student_id)::int attendees
     FROM sessions s JOIN events e ON e.id = s.event_id
     LEFT JOIN attendances a ON a.session_id = s.id
     WHERE s.active AND e.status IN ('active', 'closed')
@@ -28,7 +28,7 @@ export default async function RafflePage({ searchParams }: { searchParams: Promi
 
   const requestedSession = (await searchParams).session;
   const selected = sessions.rows.find((session) => session.id === requestedSession) ?? sessions.rows[0] ?? null;
-  const participants = selected ? await query<Participant>(`SELECT st.id, st.name, st.enrollment, st.program
+  const participants = selected ? await query<Participant>(`SELECT DISTINCT st.id, st.name, st.enrollment, st.program
     FROM attendances a JOIN students st ON st.id = a.student_id
     WHERE a.session_id = $1 AND st.active
     ORDER BY st.name`, [selected.id]) : { rows: [] };

@@ -19,6 +19,7 @@ const enrollment = `TEST${suffix}`;
 const importEnrollment = `CSV${suffix}`;
 const rollbackEnrollment = `BAD${suffix}`;
 const badgeCode = `TEST-ACCESS-${suffix}`;
+const testLegacyMigration = process.env.TEST_LEGACY_ATTENDANCE_MIGRATION === "1";
 let studentId;
 let eventId;
 let firstSessionId;
@@ -72,13 +73,29 @@ try {
   firstSessionId = first.rows[0].id; secondSessionId = second.rows[0].id;
   generalSessionId = general.rows[0].id;
   await database.query("INSERT INTO session_students (session_id, student_id) VALUES ($1, $2)", [firstSessionId, studentId]);
+  if (testLegacyMigration) await database.query("ALTER TABLE attendances ADD CONSTRAINT attendances_session_id_student_id_key UNIQUE (session_id, student_id)");
 
   const notEnrolled = await scan(scanner.cookie, secondSessionId);
   assert.equal(notEnrolled.status, 409); assert.equal(notEnrolled.body.result, "not_enrolled");
   const accepted = await scan(scanner.cookie, firstSessionId);
   assert.equal(accepted.status, 201); assert.equal(accepted.body.result, "accepted"); assert.equal(accepted.body.credential.remainingUses, 0);
-  const duplicate = await scan(scanner.cookie, firstSessionId);
-  assert.equal(duplicate.status, 200); assert.equal(duplicate.body.result, "duplicate"); assert.equal(duplicate.body.credential.usesConsumed, 1);
+  if (testLegacyMigration) {
+    const beforeMigration = await database.query("SELECT id FROM attendances WHERE session_id = $1 AND student_id = $2", [firstSessionId, studentId]);
+    const migration = fs.readFileSync(new URL("../database/migrations/007_attendance_confirmations.sql", import.meta.url), "utf8");
+    await database.query(migration);
+    const afterMigration = await database.query("SELECT id FROM attendances WHERE session_id = $1 AND student_id = $2", [firstSessionId, studentId]);
+    assert.equal(afterMigration.rows[0].id, beforeMigration.rows[0].id);
+  }
+  const confirmation = await scan(scanner.cookie, firstSessionId);
+  assert.equal(confirmation.status, 201); assert.equal(confirmation.body.result, "confirmation"); assert.equal(confirmation.body.credential.usesConsumed, 1);
+  const confirmedRows = await database.query("SELECT COUNT(*)::int total FROM attendances WHERE session_id = $1 AND student_id = $2", [firstSessionId, studentId]);
+  assert.equal(confirmedRows.rows[0].total, 2);
+  const attendancePage = await fetch(`${baseUrl}/attendances`, { headers: { cookie: admin.cookie } });
+  const attendanceHtml = await attendancePage.text();
+  assert.equal(attendancePage.status, 200); assert.match(attendanceHtml, /ASISTENCIA INICIAL/); assert.match(attendanceHtml, /CONFIRMACIÓN 1/);
+  const exported = await fetch(`${baseUrl}/api/students/export?q=${encodeURIComponent(enrollment)}`, { headers: { cookie: admin.cookie } });
+  const exportedCsv = await exported.text();
+  assert.equal(exported.status, 200); assert.match(exportedCsv, /,"2"\r?\n?$/);
   await database.query("INSERT INTO session_students (session_id, student_id) VALUES ($1, $2)", [secondSessionId, studentId]);
   const exhausted = await scan(scanner.cookie, secondSessionId);
   assert.equal(exhausted.status, 409); assert.equal(exhausted.body.result, "usage_exhausted");
@@ -111,7 +128,7 @@ try {
   assert.equal(invalid.status, 400);
   const rolledBack = await database.query("SELECT 1 FROM students WHERE enrollment = $1", [rollbackEnrollment]);
   assert.equal(rolledBack.rowCount, 0);
-  console.log("Accesos correctos: taller · sesión general · mismo QR · duplicado sin consumo · usos agotados");
+  console.log("Accesos correctos: taller · sesión general · mismo QR · confirmación conservada sin consumo · usos agotados");
   console.log("CSV correcto: política limitada · taller asignado · rollback ante clave inválida");
 } finally {
   if (eventId) {

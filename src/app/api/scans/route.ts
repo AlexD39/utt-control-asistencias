@@ -78,18 +78,22 @@ export async function POST(request: Request) {
       }
     }
 
-    const usedResult = await client.query<{ total: number }>(`SELECT COUNT(*)::int total FROM attendances a
+    const usedResult = await client.query<{ total: number }>(`SELECT COUNT(DISTINCT a.session_id)::int total FROM attendances a
       JOIN sessions s ON s.id = a.session_id
       WHERE a.event_id = $1 AND a.student_id = $2 AND s.consumes_credential_use`, [session.event_id, badge.student_id]);
     const usesConsumed = usedResult.rows[0]?.total ?? 0;
     const remainingBefore = access.credential_use_limit === null ? null : Math.max(0, access.credential_use_limit - usesConsumed);
     const existingAttendance = await client.query("SELECT 1 FROM attendances WHERE session_id = $1 AND student_id = $2", [session.id, badge.student_id]);
     if (existingAttendance.rows[0]) {
+      await client.query(`INSERT INTO attendances
+        (event_id, session_id, student_id, badge_id, scanned_by, device_time, source)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [session.event_id, session.id, badge.student_id, badge.badge_id, user.id, parsed.data.deviceTime ?? null, parsed.data.source]);
       await client.query(`INSERT INTO scan_attempts
         (event_id, session_id, student_id, badge_id, scanned_by, result, source, device_time)
         VALUES ($1, $2, $3, $4, $5, 'duplicate', $6, $7)`,
         [session.event_id, session.id, badge.student_id, badge.badge_id, user.id, parsed.data.source, parsed.data.deviceTime ?? null]);
-      return { status: 200, body: { result: "duplicate", message: "La asistencia ya estaba registrada; no se consumió otro uso", student: { name: badge.name, enrollment: badge.enrollment, program: badge.program }, session: session.name, credential: { reusable: access.credential_use_limit === null, maxUses: access.credential_use_limit, usesConsumed, remainingUses: remainingBefore } } };
+      return { status: 201, body: { result: "confirmation", message: "Permanencia confirmada; se guardó un nuevo registro sin consumir otro uso", student: { name: badge.name, enrollment: badge.enrollment, program: badge.program }, session: session.name, credential: { reusable: access.credential_use_limit === null, maxUses: access.credential_use_limit, usesConsumed, remainingUses: remainingBefore } } };
     }
 
     if (session.consumes_credential_use && remainingBefore !== null && remainingBefore <= 0) {
@@ -100,8 +104,7 @@ export async function POST(request: Request) {
 
     const attendance = await client.query<{ id: string }>(`INSERT INTO attendances
       (event_id, session_id, student_id, badge_id, scanned_by, device_time, source)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      ON CONFLICT (session_id, student_id) DO NOTHING RETURNING id`,
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
       [session.event_id, session.id, badge.student_id, badge.badge_id, user.id, parsed.data.deviceTime ?? null, parsed.data.source]);
     const accepted = attendance.rowCount === 1;
     await client.query(`INSERT INTO scan_attempts

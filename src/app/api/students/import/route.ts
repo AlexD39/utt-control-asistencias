@@ -170,7 +170,7 @@ export async function POST(request: Request) {
         const studentId = saved.rows[0].id;
         studentIds.set(student.enrollment, studentId);
         if (typeof student.credentialUseLimit === "number") {
-          const consumed = await client.query<{ total: number }>(`SELECT COUNT(*)::int total FROM attendances a
+          const consumed = await client.query<{ total: number }>(`SELECT COUNT(DISTINCT a.session_id)::int total FROM attendances a
             JOIN sessions se ON se.id = a.session_id WHERE a.event_id = $1 AND a.student_id = $2
             AND se.consumes_credential_use`, [eventId, studentId]);
           if ((consumed.rows[0]?.total ?? 0) > student.credentialUseLimit) throw new Error(`LIMIT_BELOW_USAGE:${student.enrollment}`);
