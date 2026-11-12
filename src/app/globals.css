@@ -293,6 +293,13 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
 .student-filters { display: grid; grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(130px, 1fr)) auto; gap: .8rem; align-items: end; margin-bottom: 1rem; padding: 1rem; }
 .student-filters label { margin: 0; }
 .filter-search input { min-width: 0; }
+.attendance-filters { display: grid; grid-template-columns: minmax(220px, 1.5fr) repeat(2, minmax(180px, 1fr)) repeat(2, minmax(135px, .65fr)); gap: .8rem; align-items: end; margin-bottom: 1rem; padding: 1rem; }
+.attendance-filter-search { grid-column: span 2; }
+.attendance-filter-actions { display: flex; align-items: center; gap: .6rem; }
+.attendance-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem; }
+.attendance-summary article { padding: 1rem 1.2rem; }
+.attendance-summary span, .attendance-summary small { display: block; color: var(--muted); font-size: .72rem; }
+.attendance-summary strong { display: block; margin: .15rem 0; color: var(--forest); font-size: 1.65rem; }
 .edit-student-bar { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
 .student-edit-form { margin-bottom: 1rem; }
 .student-edit-form .form-grid { margin-top: 0; }
@@ -458,7 +465,8 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
   .nav-link { justify-content: center; font-size: 0; padding: .8rem; }
   .nav-link > svg { width: 22px; height: 22px; }
   .metrics, .metric-grid { grid-template-columns: repeat(2, 1fr); }
-  .dashboard-grid, .scanner-layout, .student-filters { grid-template-columns: 1fr 1fr; }
+  .dashboard-grid, .scanner-layout, .student-filters, .attendance-filters { grid-template-columns: 1fr 1fr; }
+  .attendance-filter-search { grid-column: auto; }
   .credential-workspace { grid-template-columns: 1fr; }
   .credential-print { margin: auto; }
   .student-profile { align-items: flex-start; flex-direction: column; }
@@ -496,7 +504,9 @@ td small { color: var(--muted); margin-top: .25rem; font-size: .7rem; }
   .page { padding: 1.8rem 1rem 6rem; }
   .page-heading { display: block; }
   .page-heading .button { margin-top: 1rem; width: 100%; }
-  .heading-actions, .form-grid, .student-filters { display: grid; grid-template-columns: 1fr; }
+  .heading-actions, .form-grid, .student-filters, .attendance-filters { display: grid; grid-template-columns: 1fr; }
+  .attendance-filter-actions { display: grid; grid-template-columns: 1fr; }
+  .attendance-summary { grid-template-columns: 1fr; gap: .6rem; }
   .section-heading, .event-card-metrics { align-items: stretch; flex-direction: column; }
   .session-grid { grid-template-columns: 1fr; }
   .session-card { flex-direction: column; }
